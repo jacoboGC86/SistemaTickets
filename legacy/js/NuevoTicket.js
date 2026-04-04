@@ -240,6 +240,12 @@ function asignarEventos() {
             }
         }
 
+        if($(this).val() === "Change") {
+            $("#dvChangeValidacion").show();
+        } else {
+            $("#dvChangeValidacion").hide();
+        }
+
         $('#cmbCategorias').multiselect({
             buttonWidth: '100%',
             enableCaseInsensitiveFiltering: true,
@@ -291,6 +297,14 @@ function asignarEventos() {
                 }, onError);
             },
         });
+    });
+
+    $("#cmbImpactoSeguridadInformacion").on("change", function() {
+        if($(this).val() === "Sí") {
+            $("#dvImpactosSeguridad").show();
+        } else {
+            $("#dvImpactosSeguridad").hide();
+        }
     });
 
     $('#cmbCategorias').multiselect({
@@ -382,10 +396,12 @@ function asignarEventos() {
                     oListItem.set_item("Prioridad", Urgency);
                     oListItem.set_item("Status", status);
                     oListItem.set_item("Categoria", Categoria);
+                    oListItem.set_item("ImpactoSeguridadInformacion", $("#cmbImpactoSeguridadInformacion option:selected").val());
+                    oListItem.set_item("DescripcionImpactoSeguridad", $("#txtDescripcionImpactoSeguridad").val());
                     oListItem.set_item("Department", $("#cmbDepartamento").val());
                     oListItem.set_item("Manager", $("#cmbDepartamento option:selected").data("idman"));
                     oListItem.set_item("Planta", $("#cmbPlanta").val());
-                    oListItem.set_item("ProcessManager", $("#cmbPlanta").val() == "Puebla" ? t.processManager.id : t.processManagerAguascalientes.id);
+                    oListItem.set_item("ProcessManager", $("#cmbPlanta").val() == "Puebla" ? t.processManager.id : (t.processManagerAguascalientes != undefined ? t.processManagerAguascalientes.id : t.processManager.id));
                     oListItem.set_item("ANombreDe", user);
     
                     guardarElemento(oListItem, context, btn, t, status);
@@ -405,10 +421,12 @@ function asignarEventos() {
                 oListItem.set_item("Prioridad", Urgency);
                 oListItem.set_item("Status", status);
                 oListItem.set_item("Categoria", Categoria);
+                oListItem.set_item("ImpactoSeguridadInformacion", $("#cmbImpactoSeguridadInformacion option:selected").val());
+                oListItem.set_item("DescripcionImpactoSeguridad", $("#txtDescripcionImpactoSeguridad").val());
                 oListItem.set_item("Department", $("#cmbDepartamento").val());
                 oListItem.set_item("Manager", $("#cmbDepartamento option:selected").data("idman"));
                 oListItem.set_item("Planta", $("#cmbPlanta").val());
-                oListItem.set_item("ProcessManager", $("#cmbPlanta").val() == "Puebla" ? t.processManager.id : t.processManagerAguascalientes.id);
+                oListItem.set_item("ProcessManager", $("#cmbPlanta").val() == "Puebla" ? t.processManager.id : (t.processManagerAguascalientes != undefined ? t.processManagerAguascalientes.id : t.processManager.id));
                 oListItem.set_item("ANombreDe", null); 
     
                 guardarElemento(oListItem, context, btn, t, status);

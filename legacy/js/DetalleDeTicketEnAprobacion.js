@@ -102,6 +102,8 @@ function cargarDatos(idcode) {
     "Reaperturado",
     "MotivoReapertura",
     "Atencion",
+    "ImpactoSeguridadInformacion",
+    "DescripcionImpactoSeguridad"
   );
 
   context.executeQueryAsync(function (sender, args) {
@@ -113,11 +115,21 @@ function cargarDatos(idcode) {
     $("#txtTitle").val(oListItem.get_item("Title"));
     $("#txtSolicitante").val(oListItem.get_item("Author").get_lookupValue());
     $("#cmbDepartamento").val(oListItem.get_item("Department"));
-    $("#dtFechaRegistro").val(
-      moment(oListItem.get_item("Created")).format("DD/MM/yyyy hh:mm a"),
-    );
-
+    $("#dtFechaRegistro").val(moment(oListItem.get_item("Created")).format("DD/MM/yyyy hh:mm a"));
+    
     var tipoGuardado = oListItem.get_item("TipoTicket");
+
+    if(tipoGuardado === "Change") {
+      $("#cmbImpactoSeguridadInformacion").val(oListItem.get_item("ImpactoSeguridadInformacion"));
+      $("#txtDescripcionImpactoSeguridad").val(oListItem.get_item("DescripcionImpactoSeguridad"));
+
+      $("#dvChangeValidacion").show();
+      
+      if(oListItem.get_item("ImpactoSeguridadInformacion") === "Sí") {
+        $("#dvImpactosSeguridad").show();
+      }
+    }
+
     var categoriaGuardada = oListItem.get_item("Categoria")
       ? oListItem.get_item("Categoria").get_lookupId()
       : null;
@@ -655,7 +667,6 @@ function loadTicketComments(callback) {
       var commentId = `comment_${idComentario}`;
 
       var html = `
-      
         <div id="${commentId}" class="comentario">
          <strong>${StatusTicket}</strong> / 
         ${responsable}
@@ -681,7 +692,6 @@ function loadTicketComments(callback) {
     callback(attachmentFolders);
   }, onRequestFail);
 }
-
 function loadAttachments(attachmentFolders, index, callback) {
   // Carga de adjuntos
   if (attachmentFolders.length > index) {
@@ -807,6 +817,14 @@ function asignarEventos() {
       $(this).addClass("is-valid").removeClass("is-invalid");
     } else {
       $(this).addClass("is-invalid").removeClass("is-valid");
+    }
+  });
+
+  $("#cmbImpactoSeguridadInformacion").on("change", function() {
+    if($(this).val() === "Sí") {
+      $("#dvImpactosSeguridad").show();
+    } else {
+      $("#dvImpactosSeguridad").hide();
     }
   });
 
@@ -1377,6 +1395,10 @@ function loadTipo() {
     var tipoSeleccionado = $(this).val();
 
     $(this).removeClass("is-invalid").addClass("is-valid");
+
+    if($(this).val() === "Change") {
+      $("#dvChangeValidacion").show();
+    }
 
     if (!cargandoTicket && recategorizando) {
       $("#dvDetail").html("");

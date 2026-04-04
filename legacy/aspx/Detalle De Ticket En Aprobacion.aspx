@@ -323,7 +323,20 @@ box-shadow: rgba(0,0,0,0.2) 0px 3px 10px;
 					<option value="Baja">Baja</option>
 				</select>
 			</div>
-		
+		</div>
+
+		<div class="form-row" id="dvChangeValidacion" style="display:none;">
+			<div class="form-group col-md-4">
+				<label for="cmbImpactoSeguridadInformacion">¿Este cambio impacta la seguridad de la informacion?:</label>
+				<select name="cmbImpactoSeguridadInformacion" id="cmbImpactoSeguridadInformacion" class="form-control" disabled="disabled">
+					<option value="No">No</option>
+					<option value="Sí">Sí</option>
+				</select>
+			</div>
+			<div id="dvImpactosSeguridad" class="form-group col-md-8" style="display: none;">
+				<label for="txtDescripcionImpactoSeguridad">Describe los impactos a la seguridad de la información:</label>
+				<textarea type="text" name="txtDescripcionImpactoSeguridad" id="txtDescripcionImpactoSeguridad" class="form-control" disabled="disabled"></textarea>
+			</div>
 		</div>
 		<hr />
 		<div class="form-row">
