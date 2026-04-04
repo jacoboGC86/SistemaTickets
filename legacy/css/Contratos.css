@@ -1,0 +1,254 @@
+
+
+#DeltaPlaceHolderPageTitleInTitleArea, .camposDNP, .doctosDNP {
+	display: none;
+}
+#DeltaPlaceHolderLeftNavBar {
+	margin-top: 20px;
+}
+.row, .form-row {
+	max-width: 100%;
+}
+.btn-default {
+		color: #333;
+		background-color: #fff;
+		border-color: #ccc;
+	}
+	.btn-default:hover, .btn-default:focus, .btn-default:active, .btn-default.active, .open>.dropdown-toggle.btn-default {
+		color: #333;
+		background-color: #e6e6e6;
+		border-color: #adadad;
+	}
+	.btn:active, .btn.active {
+		background-image: none;
+		outline: 0;
+		-webkit-box-shadow: inset 0 3px 5px rgba(0,0,0,.125);
+		box-shadow: inset 0 3px 5px rgba(0,0,0,.125);
+	}
+	.dvMulti .btn-group {
+		width: 100%;
+	}
+	ul.multiselect-container.dropdown-menu.show {
+		transform: initial !important;
+		top: 36px !important;
+	}
+	.nav-tabs {
+		border-bottom: 5px solid #007bff;
+	}
+	.nav-tabs li {
+		border-bottom: solid 1px #007bff;
+		border-radius: 8px 8px 0 0;
+	}
+	.nav-link.active {
+		background-color: #007bff !important;
+		color: white !important;
+		border: 0px;
+		border-bottom: solid 1px #007bff !important;
+		height: 100%;
+	}
+	#DeltaTopNavigation, #DeltaPlaceHolderSearchArea, div#s4-ribbonrow, div#DeltaPlaceHolderPageDescription, #ctl00_PlaceHolderLeftNavBar_PlaceHolderQuickLaunchBottom_idNavLinkViewAll, #DeltaPlaceHolderLeftNavBar .ms-navedit-editArea, #modalMotivo .modal-header button {
+		display: none;
+	}
+	.nav-tabs .nav-link {
+		border-left: solid 1px #ccc ;
+		border-top: solid 1px #ccc;
+		border-right: solid 1px #ccc;
+	}
+	.nav-tabs .nav-link:hover {
+		border-bottom: 0;
+		background-color: #eee;
+		border-left: solid 1px #ccc;
+		border-top: solid 1px #ccc;
+		border-right: solid 1px #ccc;
+		height: 100%;
+	}
+	#contentRow {
+		font-size: 13px;
+	}
+	.media {
+		margin-bottom: 5px;
+		border-bottom: solid 1px #eee;
+	}
+	.media img.rounded {
+		width: 64px !important;
+    	margin-right: 5px !important;
+	}
+	#pageTitle {
+		text-align: center;
+	}
+	#tbCodigos_WP tbody tr td img {
+		display: block;
+		width: 32px;
+		margin-left: auto;
+		margin-right: auto;
+	}
+	#tbGrupos_WP tbody tr td img {
+		display: block;
+		width: 32px;
+		margin-left: auto;
+		margin-right: auto;
+	}
+	.dvMulti span .btn-group button {
+		background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='%23dc354…%3e%3ccircle cy='3' r='.5'/%3e%3ccircle cx='3' cy='3' r='.5'/%3e%3c/svg%3E");
+		background-repeat: no-repeat;
+		background-position: center right calc(.375em + .1875rem);
+		background-size: calc(.75em + .375rem) calc(.75em + .375rem);
+	}
+	.modal-header h5 {
+		margin-left: 0px;
+	}
+	input[type="number"] {
+		padding-right: 5px;
+		padding-left: 5px;
+	}
+	input[type=button][disabled], input[type=reset][disabled], input[type=submit][disabled], button[disabled][disabled],input[type=password][disabled], input[type=text][disabled], input[type=file][disabled], input:not([type])[disabled], textarea[disabled], select[disabled], .sp-peoplepicker-topLevelDisabled, .ms-inputBoxDisabled {
+		background-color: #e9ecef;
+		color: #495057;
+		opacity: 1;
+	}
+	div#dvStatus div span, #dvStatus2 div span {
+		display: block;
+		border: solid 1px #edebe9;
+		margin-bottom: 10px;
+		border-radius: 3pt;
+		font-size: 11pt;
+		background-color: #e9ecef;
+		color: #495057;
+		min-height: 38px;
+		padding-top: 6px;
+		padding-bottom: 6px;
+	  }
+    .rechazadoRev {
+      color: white !important;
+      background-color: #c44d4d !important;
+      border-color: #800000 !important;
+    }
+	  .aprobadoRev {
+      color: white !important;
+      background-color: #57bd9e !important;
+      border-color: #005d16 !important;
+	  }
+	  .pendienteRev {
+      color: goldenrod !important;
+      background-color: lightyellow !important;
+      border-color: goldenrod !important;
+	  }
+	.reaperturaRev{
+    background-color:#F3E8FF !important;   /* fondo púrpura muy suave */
+    color:#5B2C83 !important;              /* texto púrpura oscuro */
+     border-color: #8E44AD !important; /* barra lateral púrpura */
+}
+
+    .fade:not(.show) {
+      opacity: 1;
+    }
+
+    .modal-xl {
+      width: 1140px !important;
+    }
+    .form-control {
+      display: block;
+      width: 100%;
+      height: calc(1.5em + .75rem + 2px);
+      padding: .375rem .75rem;
+      font-size: 1rem;
+      font-weight: 400;
+      line-height: 1.5;
+      color: #495057;
+      background-color: #fff;
+      background-clip: padding-box;
+      border: 1px solid #ced4da !important;
+      border-radius: .25rem !important;
+      transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+  }
+  .form-control.is-invalid, .was-validated .form-control:invalid {
+    border-color: #dc3545 !important;
+  }
+  .form-control.is-valid, .was-validated .form-control:valid {
+    border-color: #28a745 !important;
+  }
+.bd-callout-info {
+  border-left-color: #004777 !important;
+}
+.bd-callout {
+    padding: 1.25rem;
+    margin-top: 1.25rem;
+    margin-bottom: 1.25rem;
+    border: 1px solid #eee;
+    border-left-width: .25rem;
+    border-radius: .25rem;
+}
+canvas {
+  cursor: crosshair;
+  border:1px solid black;
+}
+table#tbPlan, table#tbPersonales,table#tbTecnicas,table#tbPersonales,table#tbBasicas,table#tbRequerimientos,table#tbCodigos_WP,table#tbGrupos_WP,table#tbActGenerales, table#tbReal {
+  width: 100%;
+}
+table#tbPlan  thead, table#tbPersonales thead,table#tbTecnicas thead,table#tbPersonales thead,table#tbBasicas thead,table#tbRequerimientos thead, table#tbCodigos_WP thead,table#tbGrupos_WP thead,table#tbActGenerales thead,table#tbReal thead {
+  text-align: center;
+  color: white;
+  background-color: #004777;
+}
+table#tbPlan tbody tr, table#tbReal tbody tr {
+  border-bottom: solid 1px #ccc;
+  height: 35px !important;
+}
+#tbReal thead tr th[class^="sum"] {
+  border-left: solid 1px white;
+  width: 35px;
+}
+.thTotal {
+  border-left: solid 1px white;
+  border-right: solid 1px white;
+}
+.txtGrid {
+  border: none !important;
+  width: 100%;
+  padding: 0 !important;
+}
+.lblH, .lblTotal {
+  text-align: center;
+  background-color: lightyellow;
+}
+.lblrH {
+  text-align: center;
+  background-color: rgb(140, 219, 169);
+}
+input[type="number"].txtGrid {
+  text-align: right;
+}
+.txtGrid:active, .txtGrid:hover {
+  border-bottom: solid 1px #ccc !important;
+}
+.txtNumCol {
+  width: 80px;
+}
+
+@media print {
+  @page {
+    margin-top: 1cm !important;
+    margin-bottom: 1cm;
+  }
+  #dvBotonera, #dvMensaje, #dvStatus .col-md-3 span, #wt-breadcrumb-placeholder, #wt-footer, #h5Comentarios, #dvComentarios, #hrHead, #s4-titlerow, #titleAreaBox { 
+    display: none !important;
+  }
+  #dvPieFirma {
+    display: flex !important;
+  }
+  #dvMensaje2 {
+    display: block;
+  }
+  #dvHeadForm div h5, #dvHeadForm div img {
+    margin-top: 0px;
+  }
+  #hrHead2 {
+    margin-top: 5px;
+    margin-bottom: 5px;
+  }
+  .container {
+    margin-top: 0px !important;
+  }
+}
+
+  

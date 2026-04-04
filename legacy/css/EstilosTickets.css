@@ -1,0 +1,83 @@
+#dvOptionBar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #e8e8e8;
+  background: #ffffff;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+  margin-bottom: 15px;
+}
+
+/* Botones */
+.icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: #f5f7fa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all .2s ease;
+}
+
+/* icono */
+.icon-btn img {
+  width: 18px;
+  height: 18px;
+  transition: transform .2s ease;
+}
+
+/* hover */
+.icon-btn:hover {
+  background: #e9f2ff;
+  border-color: #c7dcff;
+  transform: translateY(-1px);
+}
+
+/* animación icono */
+.icon-btn:hover img {
+  transform: scale(1.1);
+}
+
+/* click */
+.icon-btn:active {
+  transform: scale(.95);
+  background: #dbe9ff;
+}
+#btnOpenPopUp:hover{
+  background:#fff3cd;
+  border-color:#ffe69c;
+}
+
+#btnHabilitRecategorizar:hover{
+  background:#e7f5ff;
+  border-color:#b6e0ff;
+}
+
+#btnReaperturar:hover{
+  background:#f8d7da;
+  border-color:#f5c2c7;
+}
+
+#btnAtencion:hover{
+  background:#fff3cd;
+  border-color:#ffd966;
+}
+.tooltip {
+  position: relative;
+}
+
+.modal {
+    z-index: 1055 !important;
+}
+
+.modal-backdrop {
+    z-index: 1050 !important;
+}
+
+
