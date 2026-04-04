@@ -1,0 +1,18 @@
+{
+  "@microsoft/generator-sharepoint": {
+    "plusBeta": false,
+    "isCreatingSolution": true,
+    "nodeVersion": "22.16.0",
+    "sdksVersions": {},
+    "version": "1.21.1",
+    "libraryName": "sistematickets",
+    "libraryId": "27d655ea-1dea-49b2-b827-2d579520551d",
+    "environment": "spo",
+    "packageManager": "npm",
+    "solutionName": "sistematickets",
+    "solutionShortDescription": "sistematickets description",
+    "skipFeatureDeployment": true,
+    "isDomainIsolated": false,
+    "componentType": "webpart"
+  }
+}
