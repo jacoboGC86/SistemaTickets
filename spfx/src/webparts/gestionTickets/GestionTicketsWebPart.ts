@@ -8,22 +8,22 @@ import {
 import { BaseClientSideWebPart } from '@microsoft/sp-webpart-base';
 import { IReadonlyTheme } from '@microsoft/sp-component-base';
 
-import * as strings from 'FormatoTicketWebPartStrings';
-import FormatoTicket from './components/FormatoTicket';
-import { IFormatoTicketProps } from './components/IFormatoTicketProps';
+import * as strings from 'GestionTicketsWebPartStrings';
+import GestionTickets from './components/GestionTickets';
+import { IGestionTicketsProps } from './components/GestionTickets';
 
-export interface IFormatoTicketWebPartProps {
+export interface IGestionTicketsWebPartProps {
   description: string;
 }
 
-export default class FormatoTicketWebPart extends BaseClientSideWebPart<IFormatoTicketWebPartProps> {
+export default class GestionTicketsWebPart extends BaseClientSideWebPart<IGestionTicketsWebPartProps> {
 
   private _isDarkTheme: boolean = false;
   private _environmentMessage: string = '';
 
   public render(): void {
-    const element: React.ReactElement<IFormatoTicketProps> = React.createElement(
-      FormatoTicket,
+    const element: React.ReactElement<IGestionTicketsProps> = React.createElement(
+      GestionTickets,
       {
         description: this.properties.description,
         isDarkTheme: this._isDarkTheme,

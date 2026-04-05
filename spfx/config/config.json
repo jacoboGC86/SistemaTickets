@@ -2,17 +2,17 @@
   "$schema": "https://developer.microsoft.com/json-schemas/spfx-build/config.2.0.schema.json",
   "version": "2.0",
   "bundles": {
-    "formato-ticket-web-part": {
+    "gestion-tickets-web-part": {
       "components": [
         {
-          "entrypoint": "./lib/webparts/formatoTicket/FormatoTicketWebPart.js",
-          "manifest": "./src/webparts/formatoTicket/FormatoTicketWebPart.manifest.json"
+          "entrypoint": "./lib/webparts/gestionTickets/GestionTicketsWebPart.js",
+          "manifest": "./src/webparts/gestionTickets/GestionTicketsWebPart.manifest.json"
         }
       ]
     }
   },
   "externals": {},
   "localizedResources": {
-    "FormatoTicketWebPartStrings": "lib/webparts/formatoTicket/loc/{locale}.js"
+    "GestionTicketsWebPartStrings": "lib/webparts/gestionTickets/loc/{locale}.js"
   }
 }

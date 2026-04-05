@@ -97,16 +97,11 @@
 			<h5 style="margin-top: 35px;text-align: center;">Nuevo ticket</h5>
 		</div>
       	<div class="form-group col-md-4">
-        	<img src="../SiteAssets/img/Logo.png" title="Chimalli Apps" style="width: 150px;margin-top: 40px;"/>
+        	<img src="../SiteAssets/img/Logo.png" style="width: 150px;margin-top: 40px;"/>
       	</div>
 	</div>
 	<hr id="hrHead2"/>
-    <div id="dvStatus" class="row" style="text-align: center;">
-      	<div class="col-md-3"></div>
-		<div class="col-md-3"></div>
-		<div class="col-md-3"></div>
-	</div>
-
+    <!-- Migrar desde aquí en adelante -->
 	<div class="form-row">	
 		<div class="form-group col-md-2">
 			<!--<label for="IdRegistro">Fecha de registro:</label>

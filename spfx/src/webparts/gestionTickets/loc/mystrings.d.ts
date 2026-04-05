@@ -1,4 +1,4 @@
-declare interface IFormatoTicketWebPartStrings {
+declare interface IGestionTicketsWebPartStrings {
   PropertyPaneDescription: string;
   BasicGroupName: string;
   DescriptionFieldLabel: string;
@@ -13,7 +13,7 @@ declare interface IFormatoTicketWebPartStrings {
   UnknownEnvironment: string;
 }
 
-declare module 'FormatoTicketWebPartStrings' {
-  const strings: IFormatoTicketWebPartStrings;
+declare module 'GestionTicketsWebPartStrings' {
+  const strings: IGestionTicketsWebPartStrings;
   export = strings;
 }

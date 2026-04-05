@@ -5,7 +5,7 @@ $(document).ready(function() {
     
     if(iebrowser) {
         alert("¡Ups! Por favor, utilice Google Chrome o Firefox para usar la plataforma");
-        window.location.href = "https://chimalliapps.sharepoint.com/ST/";
+        window.location.href = "https://promagroupmex.sharepoint.com/sites/Paperless/ST/";
     }
 
     $("#dtFechaRegistro").val(obtenerFecha(new Date(), "dd/MMM/yyyy"));
@@ -570,7 +570,7 @@ function asignarEventos() {
     });
     
     $("#btnCancelar").click(function () {
-        window.location.href = "https://chimalliapps.sharepoint.com/ST/SitePages/Home.aspx";
+        window.location.href = "https://promagroupmex.sharepoint.com/sites/Paperless/ST/SitePages/Home.aspx";
     });
 }
 
