@@ -11,6 +11,8 @@ import { IReadonlyTheme } from '@microsoft/sp-component-base';
 import * as strings from 'GestionTicketsWebPartStrings';
 import GestionTickets from './components/GestionTickets';
 import { IGestionTicketsProps } from './components/GestionTickets';
+import ListSvc from '../../services/ListSvc';
+import UserSvc from '../../services/UserSvc';
 
 export interface IGestionTicketsWebPartProps {
   description: string;
@@ -39,6 +41,10 @@ export default class GestionTicketsWebPart extends BaseClientSideWebPart<IGestio
   protected onInit(): Promise<void> {
     return this._getEnvironmentMessage().then(message => {
       this._environmentMessage = message;
+      const siteUrl = this.context.pageContext.web.absoluteUrl;
+      const relativeURL = this.context.pageContext.web.serverRelativeUrl;
+      ListSvc.Init(this.context.spHttpClient, siteUrl, relativeURL);
+      UserSvc.Init(this.context.spHttpClient, siteUrl, relativeURL, null);
     });
   }
 
