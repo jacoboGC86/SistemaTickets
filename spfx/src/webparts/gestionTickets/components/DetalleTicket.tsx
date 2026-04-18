@@ -17,6 +17,8 @@ import {
   Separator,
   IconButton,
   TooltipHost,
+  Callout,
+  DirectionalHint,
 } from '@fluentui/react';
 import ListSvc from '../../../services/ListSvc';
 import UserSvc from '../../../services/UserSvc';
@@ -50,6 +52,12 @@ interface IAprobacionRow {
   responsable: string | null;
   responsableEmail: string | null;
   modified: string | null;
+}
+
+interface IResolvedStep {
+  stepName: string;
+  responsable: string | null;
+  responsableEmail: string | null;
 }
 
 interface IAdjunto {
@@ -91,6 +99,7 @@ interface ITicketData {
   processManagerName: string;
   managerId: number | null;
   managerName: string | null;
+  managerEmail: string | null;
   modified: string;
 }
 
@@ -163,6 +172,9 @@ const DetalleTicket: React.FC<IDetalleTicketProps> = ({ isOpen, onDismiss, ticke
   const [showReasignarPanel, setShowReasignarPanel] = React.useState(false);
   const [showReaperturaPanel, setShowReaperturaPanel] = React.useState(false);
   const [showRecategorizarBar, setShowRecategorizarBar] = React.useState(false);
+  const [categoryInputText, setCategoryInputText] = React.useState('');
+  const [categoryMenuOpen, setCategoryMenuOpen] = React.useState(false);
+  const categoryInputWrapperRef = React.useRef<HTMLDivElement>(null);
 
   // ── Form inputs (actions) ────────────────────────────────────────────────
   const [comentario, setComentario] = React.useState('');
@@ -200,6 +212,8 @@ const DetalleTicket: React.FC<IDetalleTicketProps> = ({ isOpen, onDismiss, ticke
     setShowReasignarPanel(false);
     setShowReaperturaPanel(false);
     setShowRecategorizarBar(false);
+    setCategoryInputText('');
+    setCategoryMenuOpen(false);
     setComentario('');
     setMotivoReapertura('');
     setSolucionDetallada('');
@@ -209,6 +223,7 @@ const DetalleTicket: React.FC<IDetalleTicketProps> = ({ isOpen, onDismiss, ticke
     setReassignQuery('');
     setReassignSuggestions([]);
     setSelectedReassign(null);
+    setResolvedSteps([]);
     setErrorMessage('');
     setSuccessMessage('');
     dataLoaded.current = false;
@@ -222,7 +237,7 @@ const DetalleTicket: React.FC<IDetalleTicketProps> = ({ isOpen, onDismiss, ticke
       const ticketItems: any[] = await ListSvc.getItems(
         'Tickets',
         undefined,
-        `$filter=Id eq ${id}&$select=Id,Title,Status,TipoTicket,Descripcion,Department,Planta,Prioridad,TemplateConfiguracion,SolucionDetallada,Reaperturado,MotivoReapertura,Atencion,ImpactoSeguridadInformacion,DescripcionImpactoSeguridad,Created,Modified,CategoriaId,AuthorId,ProcessManagerId,ManagerId,ANombreDeId,Author/Title,Author/Id,Categoria/Title,ProcessManager/Title,ProcessManager/Id,Manager/Title,Manager/Id,ANombreDe/Title&$expand=Author,Categoria,ProcessManager,Manager,ANombreDe&$top=1`
+        `$filter=Id eq ${id}&$select=Id,Title,Status,TipoTicket,Descripcion,Department,Planta,Prioridad,TemplateConfiguracion,SolucionDetallada,Reaperturado,MotivoReapertura,Atencion,ImpactoSeguridadInformacion,DescripcionImpactoSeguridad,Created,Modified,CategoriaId,AuthorId,ProcessManagerId,ManagerId,ANombreDeId,Author/Title,Author/Id,Categoria/Title,ProcessManager/Title,ProcessManager/Id,Manager/Title,Manager/Id,Manager/EMail,ANombreDe/Title&$expand=Author,Categoria,ProcessManager,Manager,ANombreDe&$top=1`
       );
       const ticketItem = ticketItems?.[0];
       if (!ticketItem) throw new Error('Ticket no encontrado.');
@@ -261,6 +276,7 @@ const DetalleTicket: React.FC<IDetalleTicketProps> = ({ isOpen, onDismiss, ticke
         processManagerName: ticketItem.ProcessManager?.Title ?? '',
         managerId: ticketItem.ManagerId ?? null,
         managerName: ticketItem.Manager?.Title ?? null,
+        managerEmail: ticketItem.Manager?.EMail ?? null,
         modified: ticketItem.Modified ?? '',
       };
       setTicket(td);
@@ -313,6 +329,11 @@ const DetalleTicket: React.FC<IDetalleTicketProps> = ({ isOpen, onDismiss, ticke
         setIamApproval(isPM);
       }
 
+      // Resolve responsables for each approval step
+      if (tmpl && tmpl.approvalPath.length > 0) {
+        await resolveApprovalSteps(tmpl.approvalPath, rows, td.managerName, td.managerEmail, uid);
+      }
+
       // Load adjuntos from Expediente folder
       try {
         const relativeURL = ListSvc.getRelativeSiteURL();
@@ -356,6 +377,67 @@ const DetalleTicket: React.FC<IDetalleTicketProps> = ({ isOpen, onDismiss, ticke
   };
 
   const [entityTypes, setEntityTypes] = React.useState<{ tickets: string; aprobaciones: string; comentarios: string }>({ tickets: '', aprobaciones: '', comentarios: '' });
+
+  // ── Resolved approval steps ───────────────────────────────────────────────
+  const [resolvedSteps, setResolvedSteps] = React.useState<IResolvedStep[]>([]);
+
+  const resolveApprovalSteps = async (
+    approvalPath: IApprovalStep[],
+    rows: IAprobacionRow[],
+    managerName: string | null,
+    managerEmail: string | null,
+    currentUid: number
+  ): Promise<void> => {
+    const resolved: IResolvedStep[] = [];
+    let userIsApprover = false;
+
+    for (let i = 0; i < approvalPath.length; i++) {
+      const ap = approvalPath[i];
+      const row = rows[i];
+
+      // If the aprobacion row already has an assigned Responsable, use it
+      if (row?.responsable) {
+        resolved.push({
+          stepName: ap.stepName,
+          responsable: row.responsable,
+          responsableEmail: row.responsableEmail,
+        });
+        continue;
+      }
+
+      // useUserDepartment → responsable is the ticket Manager
+      if (ap.useUserDepartment) {
+        if (currentUid === rows[i]?.id) userIsApprover = true; // handled by outer logic
+        resolved.push({
+          stepName: ap.stepName,
+          responsable: managerName,
+          responsableEmail: managerEmail,
+        });
+        continue;
+      }
+
+      // Group-based step → query Grupos list by Title = stepName
+      try {
+        const groupItems: any[] = await ListSvc.getItems(
+          'Grupos',
+          undefined,
+          `$filter=Title eq '${ap.stepName.replace(/'/g, "''")}'&$select=Id,Title,Integrantes/Id,Integrantes/Title,Integrantes/EMail&$expand=Integrantes&$top=1`
+        );
+        const grupo = groupItems?.[0];
+        const integrantes: any[] = grupo?.Integrantes ?? [];
+        const primero = integrantes[0];
+        resolved.push({
+          stepName: ap.stepName,
+          responsable: primero?.Title ?? null,
+          responsableEmail: primero?.EMail ?? null,
+        });
+      } catch {
+        resolved.push({ stepName: ap.stepName, responsable: null, responsableEmail: null });
+      }
+    }
+
+    setResolvedSteps(resolved);
+  };
 
   // ── Reassign search ───────────────────────────────────────────────────────
 
@@ -572,11 +654,12 @@ const DetalleTicket: React.FC<IDetalleTicketProps> = ({ isOpen, onDismiss, ticke
     if (tmpl) {
       tmpl.approvalPath.forEach((ap, i) => {
         const row = aprobaciones[i];
+        const resolved = resolvedSteps[i];
         steps.push({
           stepName: ap.stepName,
           resultado: row?.resultado ?? 'Pendiente',
-          responsable: row?.responsable ?? ticket.managerName ?? null,
-          responsableEmail: row?.responsableEmail ?? null,
+          responsable: resolved?.responsable ?? null,
+          responsableEmail: row?.resultado === 'Pendiente' ? (resolved?.responsableEmail ?? null) : null,
           date: row?.resultado !== 'Pendiente' && row?.modified ? new Date(row.modified).toLocaleString('es-MX') : null,
         });
       });
@@ -704,7 +787,18 @@ const DetalleTicket: React.FC<IDetalleTicketProps> = ({ isOpen, onDismiss, ticke
               )}
               {isProcessManager && (
                 <TooltipHost content="Recategorizar Ticket">
-                  <DefaultButton iconProps={{ iconName: 'Tag' }} text="Recategorizar" onClick={() => setShowRecategorizarBar(v => !v)} />
+                  <DefaultButton iconProps={{ iconName: 'Tag' }} text="Recategorizar" onClick={() => {
+                    const opening = !showRecategorizarBar;
+                    setShowRecategorizarBar(opening);
+                    if (opening) {
+                      setCategoryInputText(ticket.categoriaTitle);
+                      setCategoryMenuOpen(false);
+                      setNewCategoryId(ticket.categoriaId);
+                    } else {
+                      setCategoryInputText('');
+                      setCategoryMenuOpen(false);
+                    }
+                  }} />
                 </TooltipHost>
               )}
               {isProcessManager && canReaperturar && (
@@ -774,13 +868,13 @@ const DetalleTicket: React.FC<IDetalleTicketProps> = ({ isOpen, onDismiss, ticke
           {/* Main form fields */}
           <Stack horizontal tokens={{ childrenGap: 12 }} styles={{ root: { flexWrap: 'wrap' } }}>
             <Stack.Item grow={3} styles={{ root: { minWidth: 200 } }}>
-              <TextField label="Solicitante" value={ticket.solicitante} disabled />
+              <TextField label="Solicitante" value={ticket.solicitante} readOnly />
             </Stack.Item>
             <Stack.Item grow={1} styles={{ root: { minWidth: 100 } }}>
-              <TextField label="Folio" value={String(ticket.id)} disabled />
+              <TextField label="Folio" value={String(ticket.id)} readOnly />
             </Stack.Item>
             <Stack.Item grow={2} styles={{ root: { minWidth: 150 } }}>
-              <TextField label="Fecha de registro" value={ticket.fechaRegistro} disabled />
+              <TextField label="Fecha de registro" value={ticket.fechaRegistro} readOnly />
             </Stack.Item>
           </Stack>
 
@@ -794,13 +888,61 @@ const DetalleTicket: React.FC<IDetalleTicketProps> = ({ isOpen, onDismiss, ticke
               />
             </Stack.Item>
             <Stack.Item grow={3} styles={{ root: { minWidth: 200 } }}>
-              <Dropdown
-                label="Categoría"
-                options={showRecategorizarBar ? categorias : [{ key: ticket.categoriaId ?? 0, text: ticket.categoriaTitle }]}
-                selectedKey={showRecategorizarBar ? (newCategoryId ?? ticket.categoriaId) : ticket.categoriaId}
-                disabled={!showRecategorizarBar}
-                onChange={(_, o) => setNewCategoryId(o?.key as number)}
-              />
+              {showRecategorizarBar ? (
+                <div ref={categoryInputWrapperRef}>
+                  <TextField
+                    label="Categoría"
+                    placeholder="Buscar categoría..."
+                    value={categoryInputText}
+                    onChange={(_, v) => {
+                      setCategoryInputText(v ?? '');
+                      setNewCategoryId(null);
+                      setCategoryMenuOpen(true);
+                    }}
+                    onFocus={() => setCategoryMenuOpen(true)}
+                    autoComplete="off"
+                  />
+                  {categoryMenuOpen && categoryInputWrapperRef.current && (() => {
+                    const filtered = categorias.filter(c =>
+                      !categoryInputText || (c.text ?? '').toLowerCase().includes(categoryInputText.toLowerCase())
+                    );
+                    return filtered.length > 0 ? (
+                      <Callout
+                        target={categoryInputWrapperRef.current}
+                        onDismiss={() => setCategoryMenuOpen(false)}
+                        isBeakVisible={false}
+                        directionalHint={DirectionalHint.bottomLeftEdge}
+                        calloutMaxHeight={280}
+                        styles={{ calloutMain: { overflowY: 'auto' } }}
+                        setInitialFocus={false}
+                      >
+                        {filtered.map(c => (
+                          <div
+                            key={c.key}
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              setCategoryInputText(c.text ?? '');
+                              setNewCategoryId(c.key as number);
+                              setCategoryMenuOpen(false);
+                            }}
+                            style={{ padding: '8px 16px', cursor: 'pointer', whiteSpace: 'nowrap', fontSize: 14 }}
+                            onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = '#f3f2f1'; }}
+                            onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = ''; }}
+                          >
+                            {c.text}
+                          </div>
+                        ))}
+                      </Callout>
+                    ) : null;
+                  })()}
+                </div>
+              ) : (
+                <TextField
+                  label="Categoría"
+                  value={ticket.categoriaTitle}
+                  readOnly
+                />
+              )}
             </Stack.Item>
           </Stack>
 
@@ -808,24 +950,24 @@ const DetalleTicket: React.FC<IDetalleTicketProps> = ({ isOpen, onDismiss, ticke
           {showRecategorizarBar && (
             <Stack horizontal tokens={{ childrenGap: 8 }} styles={{ root: { justifyContent: 'flex-end' } }}>
               <PrimaryButton text="Recategorizar" onClick={handleRecategorizar} disabled={isSubmitting} />
-              <DefaultButton text="Cancelar" onClick={() => { setShowRecategorizarBar(false); setNewCategoryId(null); }} />
+              <DefaultButton text="Cancelar" onClick={() => { setShowRecategorizarBar(false); setNewCategoryId(null); setCategoryInputText(''); setCategoryMenuOpen(false); }} />
             </Stack>
           )}
 
-          <TextField label="Título" value={ticket.title} disabled />
+          <TextField label="Título" value={ticket.title} readOnly />
 
-          <TextField label="Descripción detallada" value={ticket.descripcion} multiline rows={4} disabled />
+          <TextField label="Descripción detallada" value={ticket.descripcion} multiline rows={4} readOnly />
 
           <Stack horizontal tokens={{ childrenGap: 12 }} styles={{ root: { flexWrap: 'wrap' } }}>
             <Stack.Item grow={1} styles={{ root: { minWidth: 140 } }}>
-              <TextField label="Departamento" value={ticket.departamento} disabled />
+              <TextField label="Departamento" value={ticket.departamento} readOnly />
             </Stack.Item>
             <Stack.Item grow={1} styles={{ root: { minWidth: 140 } }}>
-              <TextField label="Planta" value={ticket.planta} disabled />
+              <TextField label="Planta" value={ticket.planta} readOnly />
             </Stack.Item>
             {ticket.aNombreDe && (
               <Stack.Item grow={1} styles={{ root: { minWidth: 140 } }}>
-                <TextField label="A nombre de" value={ticket.aNombreDe} disabled />
+                <TextField label="A nombre de" value={ticket.aNombreDe} readOnly />
               </Stack.Item>
             )}
           </Stack>
@@ -857,7 +999,7 @@ const DetalleTicket: React.FC<IDetalleTicketProps> = ({ isOpen, onDismiss, ticke
                   multiline
                   rows={3}
                   value={ticket.descripcionImpactoSeguridad}
-                  disabled
+                  readOnly
                 />
               )}
             </Stack>
@@ -883,7 +1025,7 @@ const DetalleTicket: React.FC<IDetalleTicketProps> = ({ isOpen, onDismiss, ticke
           {ticket.reaperturado && ticket.motivoReapertura && (
             <div style={{ borderTop: '1px solid #dee2e6', paddingTop: 12 }}>
               <h5 style={{ fontSize: 16 }}>Reaperturado</h5>
-              <TextField label="Motivo" value={ticket.motivoReapertura} multiline rows={3} disabled />
+              <TextField label="Motivo" value={ticket.motivoReapertura} multiline rows={3} readOnly />
               <Separator />
             </div>
           )}
@@ -940,7 +1082,7 @@ const DetalleTicket: React.FC<IDetalleTicketProps> = ({ isOpen, onDismiss, ticke
             </div>
           )}
 
-          {/* Register KB + Detailed solution (process manager closing) */}
+          {/* Register KB + Solución detallada (process manager closing) */}
           {isProcessManager && ticket.status === 'Assigned' && (
             <Stack tokens={stackTokens}>
               <Dropdown
@@ -951,7 +1093,7 @@ const DetalleTicket: React.FC<IDetalleTicketProps> = ({ isOpen, onDismiss, ticke
               />
               {registrarKB === 'Sí' && (
                 <TextField
-                  label="Detailed solution"
+                  label="Solución detallada"
                   multiline
                   rows={4}
                   value={solucionDetallada}
@@ -963,7 +1105,7 @@ const DetalleTicket: React.FC<IDetalleTicketProps> = ({ isOpen, onDismiss, ticke
 
           {/* Closed — read-only solution */}
           {isClosed && ticket.solucionDetallada && (
-            <TextField label="Detailed solution" multiline rows={4} value={ticket.solucionDetallada} disabled />
+            <TextField label="Solución detallada" multiline rows={4} value={ticket.solucionDetallada} disabled />
           )}
 
           {/* Action buttons */}

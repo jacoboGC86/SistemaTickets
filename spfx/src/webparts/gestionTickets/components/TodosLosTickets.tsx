@@ -18,58 +18,91 @@ import {
   IDropdownOption,
 } from '@fluentui/react';
 import ListSvc from '../../../services/ListSvc';
-import UserSvc from '../../../services/UserSvc';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface ITicketRow {
+interface ITicketAdmonRow {
   id: number;
   title: string;
+  processManager: string;
   tipoTicket: string;
   categoria: string;
   status: string;
   prioridad: string;
+  tiempoAsignacion: string;
+  mes: string;
+  anio: number;
+  solicita: string;
 }
 
-export interface IMisTicketsProps {
+export interface ITodosLosTicketsProps {
   isOpen: boolean;
   onDismiss: () => void;
   onVerDetalle?: (id: number) => void;
 }
 
-interface IMisTicketsState {
+interface ITodosLosTicketsState {
   loading: boolean;
   error: string | null;
-  tickets: ITicketRow[];
+  tickets: ITicketAdmonRow[];
   filterText: string;
-  sortKey: keyof ITicketRow;
+  sortKey: keyof ITicketAdmonRow;
   isSortedDescending: boolean;
   selectedYear: number;
 }
 
-// ─── Year options ─────────────────────────────────────────────────────────────
+// ─── Constants ────────────────────────────────────────────────────────────────
 
 const CURRENT_YEAR = new Date().getFullYear();
+
 const YEAR_OPTIONS: IDropdownOption[] = Array.from(
   { length: CURRENT_YEAR - 2025 + 1 },
   (_, i) => { const y = 2025 + i; return { key: y, text: String(y) }; }
 );
 
+const MESES = [
+  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+];
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function getTimeDifference(dateStr: string): string {
+  const now = new Date();
+  const date = new Date(dateStr);
+  const diffMs = now.getTime() - date.getTime();
+
+  const minutes = Math.floor(diffMs / 60000) % 60;
+  const hours = Math.floor(diffMs / (1000 * 60 * 60)) % 24;
+  const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  const parts: string[] = [];
+  if (days > 0) parts.push(`${days} día(s)`);
+  if (hours > 0) parts.push(`${hours} hora(s)`);
+  if (minutes > 0 || parts.length === 0) parts.push(`${minutes} minuto(s)`);
+  return parts.join(', ');
+}
+
 // ─── Base column definitions ──────────────────────────────────────────────────
 
 const BASE_COLUMNS: Pick<IColumn, 'key' | 'name' | 'fieldName' | 'minWidth' | 'maxWidth'>[] = [
-  { key: 'id',         name: 'Folio',     fieldName: 'id',         minWidth: 50,  maxWidth: 70  },
-  { key: 'title',      name: 'Ticket',    fieldName: 'title',      minWidth: 150, maxWidth: 250 },
-  { key: 'tipoTicket', name: 'Tipo',      fieldName: 'tipoTicket', minWidth: 100, maxWidth: 150 },
-  { key: 'categoria',  name: 'Categoría', fieldName: 'categoria',  minWidth: 150, maxWidth: 250 },
-  { key: 'status',     name: 'Estatus',   fieldName: 'status',     minWidth: 100, maxWidth: 150 },
-  { key: 'prioridad',  name: 'Prioridad', fieldName: 'prioridad',  minWidth: 80,  maxWidth: 120 },
+  { key: 'id',               name: 'Folio',                fieldName: 'id',               minWidth: 50,  maxWidth: 70  },
+  { key: 'title',            name: 'Ticket',               fieldName: 'title',            minWidth: 150, maxWidth: 250 },
+  { key: 'processManager',   name: 'Process Manager',      fieldName: 'processManager',   minWidth: 120, maxWidth: 200 },
+  { key: 'tipoTicket',       name: 'Tipo',                 fieldName: 'tipoTicket',       minWidth: 90,  maxWidth: 140 },
+  { key: 'categoria',        name: 'Categoría',            fieldName: 'categoria',        minWidth: 130, maxWidth: 220 },
+  { key: 'status',           name: 'Estatus',              fieldName: 'status',           minWidth: 90,  maxWidth: 140 },
+  { key: 'prioridad',        name: 'Prioridad',            fieldName: 'prioridad',        minWidth: 80,  maxWidth: 120 },
+  { key: 'tiempoAsignacion', name: 'Tiempo de asignación', fieldName: 'tiempoAsignacion', minWidth: 140, maxWidth: 200 },
+  { key: 'mes',              name: 'Mes',                  fieldName: 'mes',              minWidth: 80,  maxWidth: 120 },
+  { key: 'anio',             name: 'Año',                  fieldName: 'anio',             minWidth: 60,  maxWidth: 80  },
+  { key: 'solicita',         name: 'Solicita',             fieldName: 'solicita',         minWidth: 120, maxWidth: 200 },
 ];
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default class MisTickets extends React.Component<IMisTicketsProps, IMisTicketsState> {
-  constructor(props: IMisTicketsProps) {
+export default class TodosLosTickets extends React.Component<ITodosLosTicketsProps, ITodosLosTicketsState> {
+  constructor(props: ITodosLosTicketsProps) {
     super(props);
     this.state = {
       loading: false,
@@ -82,7 +115,7 @@ export default class MisTickets extends React.Component<IMisTicketsProps, IMisTi
     };
   }
 
-  public componentDidUpdate(prevProps: IMisTicketsProps): void {
+  public componentDidUpdate(prevProps: ITodosLosTicketsProps): void {
     if (this.props.isOpen && !prevProps.isOpen) {
       this.setState({ filterText: '', sortKey: 'id', isSortedDescending: true, selectedYear: CURRENT_YEAR }, () => {
         this._loadTickets().catch(console.error);
@@ -94,46 +127,36 @@ export default class MisTickets extends React.Component<IMisTicketsProps, IMisTi
     this.setState({ loading: true, error: null, tickets: [] });
 
     try {
-      const currentUser = await UserSvc.GetCurrentUser();
-      const userId: number = currentUser.Id;
       const { selectedYear } = this.state;
       const yearStart = `${selectedYear}-01-01T00:00:00Z`;
       const yearEnd   = `${selectedYear}-12-31T23:59:59Z`;
 
-      const [ticketsRaw, categoriasRaw] = await Promise.all([
-        ListSvc.getItems(
-          'Tickets',
-          undefined,
-          `$select=Id,Title,TipoTicket,Status,Prioridad,CategoriaId,Categoria/Id,Categoria/Title` +
-            `&$expand=Categoria` +
-            `&$filter=AuthorId eq ${userId} and Created ge datetime'${yearStart}' and Created le datetime'${yearEnd}'` +
-            `&$orderby=Id desc` +
-            `&$top=200`
-        ),
-        ListSvc.getItems(
-          'Categorias',
-          undefined,
-          `$select=Id,Title,CategoriaPadre/LookupValue&$expand=CategoriaPadre`
-        ),
-      ]);
+      const ticketsRaw = await ListSvc.getItems(
+        'Tickets',
+        undefined,
+        `$select=Id,Title,TipoTicket,Status,Prioridad,Modified,` +
+          `ProcessManager/Title,Categoria/Title,Author/Title` +
+          `&$expand=ProcessManager,Categoria,Author` +
+          `&$filter=Created ge datetime'${yearStart}' and Created le datetime'${yearEnd}'` +
+          `&$orderby=Id desc` +
+          `&$top=500`
+      );
 
-      const categoriasMap: Record<number, string> = {};
-      if (Array.isArray(categoriasRaw)) {
-        categoriasRaw.forEach((cat: any) => {
-          const padre = cat.CategoriaPadre?.LookupValue ?? cat.CategoriaPadre ?? '';
-          categoriasMap[cat.Id] = padre ? `${cat.Title} - ${padre}` : cat.Title;
-        });
-      }
-
-      const tickets: ITicketRow[] = (ticketsRaw ?? []).map((item: any) => {
-        const catId: number = item.CategoriaId ?? item.Categoria?.Id ?? 0;
+      const tickets: ITicketAdmonRow[] = (ticketsRaw ?? []).map((item: any) => {
+        const modified: string = item.Modified ?? '';
+        const modDate = modified ? new Date(modified) : new Date();
         return {
           id: item.Id,
           title: item.Title ?? '',
+          processManager: item.ProcessManager?.Title ?? '',
           tipoTicket: item.TipoTicket ?? '',
-          categoria: catId && categoriasMap[catId] ? categoriasMap[catId] : item.Categoria?.Title ?? 'Sin categoría',
+          categoria: item.Categoria?.Title ?? 'Sin categoría',
           status: item.Status ?? '',
           prioridad: item.Prioridad ?? '',
+          tiempoAsignacion: modified ? getTimeDifference(modified) : '',
+          mes: MESES[modDate.getUTCMonth()],
+          anio: modDate.getUTCFullYear(),
+          solicita: item.Author?.Title ?? '',
         };
       });
 
@@ -146,14 +169,14 @@ export default class MisTickets extends React.Component<IMisTicketsProps, IMisTi
   // ─── Sort ──────────────────────────────────────────────────────────────────
 
   private _onColumnHeaderClick = (_ev: React.MouseEvent<HTMLElement> | undefined, column: IColumn): void => {
-    const key = column.fieldName as keyof ITicketRow;
+    const key = column.fieldName as keyof ITicketAdmonRow;
     this.setState(prev => ({
       sortKey: key,
       isSortedDescending: prev.sortKey === key ? !prev.isSortedDescending : false,
     }));
   };
 
-  private _getSortedAndFiltered(tickets: ITicketRow[]): ITicketRow[] {
+  private _getSortedAndFiltered(tickets: ITicketAdmonRow[]): ITicketAdmonRow[] {
     const { filterText, sortKey, isSortedDescending } = this.state;
 
     let result = tickets;
@@ -163,10 +186,13 @@ export default class MisTickets extends React.Component<IMisTicketsProps, IMisTi
       result = result.filter(t =>
         String(t.id).includes(lower) ||
         t.title.toLowerCase().includes(lower) ||
+        t.processManager.toLowerCase().includes(lower) ||
         t.tipoTicket.toLowerCase().includes(lower) ||
         t.categoria.toLowerCase().includes(lower) ||
         t.status.toLowerCase().includes(lower) ||
-        t.prioridad.toLowerCase().includes(lower)
+        t.prioridad.toLowerCase().includes(lower) ||
+        t.mes.toLowerCase().includes(lower) ||
+        t.solicita.toLowerCase().includes(lower)
       );
     }
 
@@ -196,7 +222,7 @@ export default class MisTickets extends React.Component<IMisTicketsProps, IMisTi
     }));
   }
 
-  private _renderStatus = (item: ITicketRow): JSX.Element => {
+  private _renderStatus = (item: ITicketAdmonRow): JSX.Element => {
     const { onVerDetalle } = this.props;
     return (
       <Link
@@ -212,7 +238,7 @@ export default class MisTickets extends React.Component<IMisTicketsProps, IMisTi
 
   // ─── Render ────────────────────────────────────────────────────────────────
 
-  public render(): React.ReactElement<IMisTicketsProps> {
+  public render(): React.ReactElement<ITodosLosTicketsProps> {
     const { isOpen, onDismiss } = this.props;
     const { loading, error, tickets, filterText, selectedYear } = this.state;
 
@@ -222,7 +248,7 @@ export default class MisTickets extends React.Component<IMisTicketsProps, IMisTi
       <Panel
         isOpen={isOpen}
         onDismiss={onDismiss}
-        headerText="Mis Tickets"
+        headerText="Todos los tickets"
         closeButtonAriaLabel="Cerrar"
         type={PanelType.extraLarge}
       >
@@ -242,7 +268,7 @@ export default class MisTickets extends React.Component<IMisTicketsProps, IMisTi
               <Stack horizontal tokens={{ childrenGap: 8 }} verticalAlign="end">
                 <Stack.Item grow>
                   <SearchBox
-                    placeholder="Buscar en mis tickets..."
+                    placeholder="Buscar en todos los tickets..."
                     value={filterText}
                     onChange={(_ev, val) => this.setState({ filterText: val ?? '' })}
                     onClear={() => this.setState({ filterText: '' })}

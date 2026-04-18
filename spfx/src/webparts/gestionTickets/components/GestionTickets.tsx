@@ -5,6 +5,7 @@ import { escape } from '@microsoft/sp-lodash-subset';
 import NuevoTicket from './NuevoTicket';
 import DetalleTicket from './DetalleTicket';
 import MisTickets from './MisTickets';
+import TodosLosTickets from './TodosLosTickets';
 
 const navStyles: Partial<INavStyles> = {
   root: {
@@ -33,14 +34,31 @@ export interface IGestionTicketsState {
   isNuevoTicket: boolean;
   isDetalleTicket: boolean;
   isMisTickets: boolean;
+  isTodosLosTickets: boolean;
   detalleTicketId: number | null;
 }
 
 export default class GestionTickets extends React.Component<IGestionTicketsProps, IGestionTicketsState> {
   constructor(props: IGestionTicketsProps) {
     super(props);
-    this.state = { isNuevoTicket: false, isDetalleTicket: false, isMisTickets: false, detalleTicketId: null };
+    this.state = { isNuevoTicket: false, isDetalleTicket: false, isMisTickets: false, isTodosLosTickets: false, detalleTicketId: null };
   }
+
+  public componentDidMount(): void {
+    this._handleHash();
+    window.addEventListener('hashchange', this._handleHash);
+  }
+
+  public componentWillUnmount(): void {
+    window.removeEventListener('hashchange', this._handleHash);
+  }
+
+  private _handleHash = (): void => {
+    const match = window.location.hash.match(/^#detalle-ticket-(\d+)$/);
+    if (match) {
+      this.setState({ detalleTicketId: Number(match[1]), isDetalleTicket: true });
+    }
+  };
 
   public render(): React.ReactElement<IGestionTicketsProps> {
     const {
@@ -57,10 +75,22 @@ export default class GestionTickets extends React.Component<IGestionTicketsProps
           <Nav groups={[{ links: navLinks }]} styles={navStyles} onLinkClick={this._onLinkClick} />
         </div>
         <NuevoTicket isOpen={this.state.isNuevoTicket} onDismiss={() => this.setState({ isNuevoTicket: false })} />
-        <DetalleTicket isOpen={this.state.isDetalleTicket} onDismiss={() => this.setState({ isDetalleTicket: false })} ticketId={this.state.detalleTicketId} />
+        <DetalleTicket
+          isOpen={this.state.isDetalleTicket}
+          onDismiss={() => {
+            this.setState({ isDetalleTicket: false });
+            history.pushState(null, '', window.location.pathname + window.location.search);
+          }}
+          ticketId={this.state.detalleTicketId}
+        />
         <MisTickets
           isOpen={this.state.isMisTickets}
           onDismiss={() => this.setState({ isMisTickets: false })}
+          onVerDetalle={(id) => this.setState({ detalleTicketId: id, isDetalleTicket: true })}
+        />
+        <TodosLosTickets
+          isOpen={this.state.isTodosLosTickets}
+          onDismiss={() => this.setState({ isTodosLosTickets: false })}
           onVerDetalle={(id) => this.setState({ detalleTicketId: id, isDetalleTicket: true })}
         />
       </section>
@@ -73,6 +103,8 @@ export default class GestionTickets extends React.Component<IGestionTicketsProps
       this.setState({ isNuevoTicket: true });
     } else if (item?.key === 'ver-mis-tickets') {
       this.setState({ isMisTickets: true });
+    } else if (item?.key === 'todos-los-tickets') {
+      this.setState({ isTodosLosTickets: true });
     }
   };
 }
