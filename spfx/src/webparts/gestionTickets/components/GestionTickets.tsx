@@ -4,6 +4,7 @@ import { Nav, INavLink, INavStyles } from '@fluentui/react';
 import { escape } from '@microsoft/sp-lodash-subset';
 import NuevoTicket from './NuevoTicket';
 import DetalleTicket from './DetalleTicket';
+import MisTickets from './MisTickets';
 
 const navStyles: Partial<INavStyles> = {
   root: {
@@ -31,12 +32,14 @@ export interface IGestionTicketsProps {
 export interface IGestionTicketsState {
   isNuevoTicket: boolean;
   isDetalleTicket: boolean;
+  isMisTickets: boolean;
+  detalleTicketId: number | null;
 }
 
 export default class GestionTickets extends React.Component<IGestionTicketsProps, IGestionTicketsState> {
   constructor(props: IGestionTicketsProps) {
     super(props);
-    this.state = { isNuevoTicket: false, isDetalleTicket: false };
+    this.state = { isNuevoTicket: false, isDetalleTicket: false, isMisTickets: false, detalleTicketId: null };
   }
 
   public render(): React.ReactElement<IGestionTicketsProps> {
@@ -54,7 +57,12 @@ export default class GestionTickets extends React.Component<IGestionTicketsProps
           <Nav groups={[{ links: navLinks }]} styles={navStyles} onLinkClick={this._onLinkClick} />
         </div>
         <NuevoTicket isOpen={this.state.isNuevoTicket} onDismiss={() => this.setState({ isNuevoTicket: false })} />
-        <DetalleTicket isOpen={this.state.isDetalleTicket} onDismiss={() => this.setState({ isDetalleTicket: false })} />
+        <DetalleTicket isOpen={this.state.isDetalleTicket} onDismiss={() => this.setState({ isDetalleTicket: false })} ticketId={this.state.detalleTicketId} />
+        <MisTickets
+          isOpen={this.state.isMisTickets}
+          onDismiss={() => this.setState({ isMisTickets: false })}
+          onVerDetalle={(id) => this.setState({ detalleTicketId: id, isDetalleTicket: true })}
+        />
       </section>
     );
   }
@@ -63,6 +71,8 @@ export default class GestionTickets extends React.Component<IGestionTicketsProps
     ev?.preventDefault();
     if (item?.key === 'nuevo-ticket') {
       this.setState({ isNuevoTicket: true });
+    } else if (item?.key === 'ver-mis-tickets') {
+      this.setState({ isMisTickets: true });
     }
   };
 }
