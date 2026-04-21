@@ -194,7 +194,7 @@ box-shadow: rgba(0,0,0,0.2) 0px 3px 10px;
     </div>
 
     <div style="margin-top:12px;text-align:right">
-        <button class="btn btn-primary" id="btnConfirmReassign">Reasignar</button>
+        <button type="button"  class="btn btn-primary" id="btnConfirmReassign">Reasignar</button>
         <button type="button" class="btn btn-danger" id="btnCancelReassign">Cancelar</button>
     </div>
 

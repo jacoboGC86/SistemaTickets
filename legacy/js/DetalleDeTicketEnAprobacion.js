@@ -527,6 +527,19 @@ function loadApprovalProcess(callback) {
       var resultadoClass = "";
       var grupoId = 0;
 
+      if(oListItem.get_item("Responsable") !== null && oListItem.get_item("Comentarios") !== null) {
+        var html = `
+          <div id="ap${idAprov}" class="comentario">
+          <strong>${oListItem.get_item("Title")}</strong> / 
+          ${oListItem.get_item("Responsable").get_lookupValue()}
+          <br/>${moment(oListItem.get_item("Modified")).format("DD/MM/yyyy hh:mm a")}
+          <br/>${oListItem.get_item("Comentarios")}
+          </div>
+        `;
+
+        $("#dvComentarios").append(html);
+      }
+
       switch (resultado) {
         case "Pendiente":
           grupoId =
@@ -641,7 +654,7 @@ function loadTicketComments(callback) {
   context.load(items);
 
   context.executeQueryAsync(function () {
-    $("#dvComentarios").empty();
+    //$("#dvComentarios").empty();
 
     var enumerator = items.getEnumerator();
     var attachmentFolders = [];
@@ -683,11 +696,7 @@ function loadTicketComments(callback) {
       });
     }
 
-    if (!hayComentarios) {
-      $("#dvComentarios").hide();
-    } else {
-      $("#dvComentarios").show();
-    }
+    $("#dvComentarios").show();
 
     callback(attachmentFolders);
   }, onRequestFail);

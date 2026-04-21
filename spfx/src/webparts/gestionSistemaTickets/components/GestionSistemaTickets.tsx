@@ -2,6 +2,8 @@ import * as React from 'react';
 import styles from './GestionSistemaTickets.module.scss';
 import { Nav, INavLink, INavStyles } from '@fluentui/react';
 import NuevaPlantilla from './NuevaPlantilla';
+import ConsultaPlantillas from './ConsultaPlantillas';
+import NuevaCategoria from './NuevaCategoria';
 
 const navStyles: Partial<INavStyles> = {
   root: {
@@ -32,12 +34,14 @@ export interface IGestionSistemaTicketsProps {
 export interface IGestionSistemaTicketsState {
   activeKey: string | null;
   isNuevaPlantilla: boolean;
+  isConsultaPlantillas: boolean;
+  isNuevaCategoria: boolean;
 }
 
 export default class GestionSistemaTickets extends React.Component<IGestionSistemaTicketsProps, IGestionSistemaTicketsState> {
   constructor(props: IGestionSistemaTicketsProps) {
     super(props);
-    this.state = { activeKey: null, isNuevaPlantilla: false };
+    this.state = { activeKey: null, isNuevaPlantilla: false, isConsultaPlantillas: false, isNuevaCategoria: false };
   }
 
   public render(): React.ReactElement<IGestionSistemaTicketsProps> {
@@ -57,6 +61,14 @@ export default class GestionSistemaTickets extends React.Component<IGestionSiste
           isOpen={this.state.isNuevaPlantilla}
           onDismiss={() => this.setState({ isNuevaPlantilla: false, activeKey: null })}
         />
+        <ConsultaPlantillas
+          isOpen={this.state.isConsultaPlantillas}
+          onDismiss={() => this.setState({ isConsultaPlantillas: false, activeKey: null })}
+        />
+        <NuevaCategoria
+          isOpen={this.state.isNuevaCategoria}
+          onDismiss={() => this.setState({ isNuevaCategoria: false, activeKey: null })}
+        />
       </section>
     );
   }
@@ -65,6 +77,10 @@ export default class GestionSistemaTickets extends React.Component<IGestionSiste
     ev?.preventDefault();
     if (item?.key === 'nueva-plantilla') {
       this.setState({ activeKey: item.key, isNuevaPlantilla: true });
+    } else if (item?.key === 'consulta-plantillas') {
+      this.setState({ activeKey: item.key, isConsultaPlantillas: true });
+    } else if (item?.key === 'nueva-categoria') {
+      this.setState({ activeKey: item.key, isNuevaCategoria: true });
     } else if (item?.key) {
       this.setState({ activeKey: item.key });
     }
