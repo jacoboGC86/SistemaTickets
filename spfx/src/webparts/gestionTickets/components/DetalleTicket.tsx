@@ -462,21 +462,87 @@ const DetalleTicket: React.FC<IDetalleTicketProps> = ({ isOpen, onDismiss, ticke
     setSubmitAction('approve');
     setIsSubmitting(true);
     try {
+      // 1. Mark current Aprobaciones row as Aprobado and assign the current user as Responsable
       const pendingRow = aprobaciones.find(r => r.resultado === 'Pendiente');
       if (pendingRow) {
-        await ListSvc.putListItem('Aprobaciones', pendingRow.id, JSON.stringify({ '__metadata': { type: entityTypes.aprobaciones }, Resultado: 'Aprobado' }));
+        await ListSvc.putListItem(
+          'Aprobaciones',
+          pendingRow.id,
+          JSON.stringify({
+            '__metadata': { type: entityTypes.aprobaciones },
+            Resultado: 'Aprobado',
+            ResponsableId: currentUserId,
+          })
+        );
       }
-      // Advance ticket status
+
+      // 2. Locate current step in the approvalPath and find the next one
       const tmpl = ticket.templateConfiguracion;
-      if (tmpl) {
-        const currentIdx = tmpl.approvalPath.findIndex(s => s.stepName === ticket.status);
-        const nextStep = tmpl.approvalPath[currentIdx + 1];
-        const newStatus = nextStep ? nextStep.stepName : 'Assigned';
-        await ListSvc.putListItem('Tickets', ticket.id, JSON.stringify({ '__metadata': { type: entityTypes.tickets }, Status: newStatus }));
+      const ap = tmpl?.approvalPath ?? [];
+      const currentIdx = ap.findIndex(s => s.stepName === ticket.status);
+      const nextStep = ap[currentIdx + 1] ?? null;
+
+      // 3. Determine new ticket status
+      //    - There is a next approval step  → use nextStep.stepName
+      //    - No more approval steps         → 'Assigned' (moves to Process Manager)
+      const newStatus = nextStep ? nextStep.stepName : 'Assigned';
+      await ListSvc.putListItem(
+        'Tickets',
+        ticket.id,
+        JSON.stringify({ '__metadata': { type: entityTypes.tickets }, Status: newStatus })
+      );
+
+      // 4. Create the next Aprobaciones record
+      //    nextStep != null → next approval step (group or manager)
+      //    nextStep == null → PM step (Assigned)
+      const newAprobacionBody: Record<string, unknown> = {
+        '__metadata': { type: entityTypes.aprobaciones },
+        Title: newStatus,
+        Resultado: 'Pendiente',
+        TicketId: ticket.id,
+      };
+
+      if (nextStep) {
+        // approvalGroup is a number → assign to that group
+        if (nextStep.approvalGroup != null) {
+          newAprobacionBody['GrupoId'] = nextStep.approvalGroup;
+        } else {
+          // useUserDepartment → responsable is the ticket Manager
+          newAprobacionBody['ResponsableId'] = ticket.managerId ?? currentUserId;
+        }
+      } else {
+        // No more approval steps → assign to Process Manager
+        newAprobacionBody['ResponsableId'] = ticket.processManagerId;
       }
+
+      await ListSvc.postListItem('Aprobaciones', JSON.stringify(newAprobacionBody));
+
+      // 5. Optional comment
       if (comentario.trim()) {
-        await ListSvc.postListItem('Comentarios', JSON.stringify({ '__metadata': { type: entityTypes.comentarios }, Title: comentario, TicketId: ticket.id }));
+        const newComment = await ListSvc.postListItem(
+          'Comentarios',
+          JSON.stringify({
+            '__metadata': { type: entityTypes.comentarios },
+            Title: ticket.status,
+            Comentario: comentario,
+            TicketId: ticket.id,
+            ResponsableId: currentUserId,
+          })
+        );
+        if (selectedCommentFile) {
+          const comentarioId: number = newComment?.d?.Id ?? newComment?.Id;
+          if (comentarioId) {
+            const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = (e) => resolve(e.target!.result as ArrayBuffer);
+              reader.onerror = (e) => reject(e);
+              reader.readAsArrayBuffer(selectedCommentFile);
+            });
+            await ListSvc.postListItemAttachment('Comentarios', comentarioId, selectedCommentFile.name, arrayBuffer);
+          }
+        }
       }
+
       setSuccessMessage('Ticket aprobado correctamente.');
       dataLoaded.current = false;
       await loadAll(ticket.id);
@@ -540,7 +606,89 @@ const DetalleTicket: React.FC<IDetalleTicketProps> = ({ isOpen, onDismiss, ticke
     setErrorMessage('');
     setIsSubmitting(true);
     try {
-      await ListSvc.putListItem('Tickets', ticket.id, JSON.stringify({ '__metadata': { type: entityTypes.tickets }, CategoriaId: newCategoryId }));
+      // 1. Load category to get its TemplateAtencion lookup
+      const catItems: any[] = await ListSvc.getItems(
+        'Categorias',
+        undefined,
+        `$select=Id,TemplateAtencionId&$filter=Id eq ${newCategoryId}&$top=1`
+      );
+      const cat = catItems?.[0];
+      const templateId: number | null = cat?.TemplateAtencionId ?? null;
+
+      let newTemplateConfig: ITemplate | null = null;
+      let newStatus = 'Assigned';
+
+      if (templateId) {
+        // 2. Load template to get RutaAprobacionEscalacion
+        const tmplItem = await ListSvc.getItemById('Templates', templateId);
+        const rutaJson: string | null = tmplItem?.RutaAprobacionEscalacion ?? null;
+
+        if (rutaJson) {
+          newTemplateConfig = JSON.parse(rutaJson) as ITemplate;
+          // 3. Determine new status from approval path
+          newStatus = newTemplateConfig.approvalPath?.length > 0
+            ? newTemplateConfig.approvalPath[0].stepName
+            : 'Assigned';
+        }
+      }
+
+      // 4. Update ticket: CategoriaId, TemplateConfiguracion, Status
+      const ticketPayload: Record<string, unknown> = {
+        '__metadata': { type: entityTypes.tickets },
+        CategoriaId: newCategoryId,
+        Status: newStatus,
+      };
+      if (newTemplateConfig) {
+        ticketPayload['TemplateConfiguracion'] = JSON.stringify(newTemplateConfig);
+      }
+      await ListSvc.putListItem('Tickets', ticket.id, JSON.stringify(ticketPayload));
+
+      // 5. Delete existing Aprobaciones and create the first one for the new path
+      const existingAprobaciones: any[] = await ListSvc.getItems(
+        'Aprobaciones',
+        undefined,
+        `$select=Id&$filter=TicketId eq ${ticket.id}`
+      );
+      await Promise.all((existingAprobaciones || []).map((a: any) =>
+        ListSvc.deleteListItem('Aprobaciones', a.Id)
+      ));
+
+      // 6. Create first Aprobaciones record for the new path
+      const newAprobBody: Record<string, unknown> = {
+        '__metadata': { type: entityTypes.aprobaciones },
+        Title: newStatus,
+        Resultado: 'Pendiente',
+        TicketId: ticket.id,
+      };
+
+      if (newTemplateConfig && newTemplateConfig.approvalPath?.length > 0) {
+        const firstStep = newTemplateConfig.approvalPath[0];
+        if (firstStep.approvalGroup != null) {
+          newAprobBody['GrupoId'] = firstStep.approvalGroup;
+        } else if (firstStep.useUserDepartment) {
+          newAprobBody['ResponsableId'] = ticket.managerId ?? ticket.processManagerId;
+        } else {
+          newAprobBody['ResponsableId'] = ticket.processManagerId;
+        }
+      } else {
+        newAprobBody['ResponsableId'] = ticket.processManagerId;
+      }
+      await ListSvc.postListItem('Aprobaciones', JSON.stringify(newAprobBody));
+
+      // 7. Post default recategorization comment
+      const newCategoryText = categorias.find(c => c.key === newCategoryId)?.text ?? String(newCategoryId);
+      const comentarioRecat = `Ticket recategorizado. Categoría original: "${ticket.categoriaTitle}" → Nueva categoría: "${newCategoryText}".`;
+      await ListSvc.postListItem(
+        'Comentarios',
+        JSON.stringify({
+          '__metadata': { type: entityTypes.comentarios },
+          Title: ticket.status,
+          Comentario: comentarioRecat,
+          TicketId: ticket.id,
+          ResponsableId: currentUserId,
+        })
+      );
+
       setSuccessMessage('Ticket recategorizado correctamente.');
       setShowRecategorizarBar(false);
       dataLoaded.current = false;
@@ -620,7 +768,32 @@ const DetalleTicket: React.FC<IDetalleTicketProps> = ({ isOpen, onDismiss, ticke
     if (!ticket || !comentario.trim()) { setErrorMessage('Ingrese un comentario antes de subir.'); return; }
     setIsSubmitting(true);
     try {
-      await ListSvc.postListItem('Comentarios', JSON.stringify({ '__metadata': { type: entityTypes.comentarios }, Title: comentario, TicketId: ticket.id }));
+      // Create comment item with Responsable (current user)
+      const newComment = await ListSvc.postListItem(
+        'Comentarios',
+        JSON.stringify({
+          '__metadata': { type: entityTypes.comentarios },
+          Title: ticket.status,
+          Comentario: comentario,
+          TicketId: ticket.id,
+          ResponsableId: currentUserId,
+        })
+      );
+
+      // Upload attachment if one was selected
+      if (selectedCommentFile) {
+        const comentarioId: number = newComment?.d?.Id ?? newComment?.Id;
+        if (comentarioId) {
+          const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target!.result as ArrayBuffer);
+            reader.onerror = (e) => reject(e);
+            reader.readAsArrayBuffer(selectedCommentFile);
+          });
+          await ListSvc.postListItemAttachment('Comentarios', comentarioId, selectedCommentFile.name, arrayBuffer);
+        }
+      }
+
       setComentario('');
       setSelectedCommentFile(null);
       setSuccessMessage('Comentario guardado.');
@@ -1112,12 +1285,14 @@ const DetalleTicket: React.FC<IDetalleTicketProps> = ({ isOpen, onDismiss, ticke
           {(iamApproval || isProcessManager) && (
             <Stack horizontal tokens={{ childrenGap: 8 }} styles={{ root: { justifyContent: 'flex-end', paddingBottom: 24 } }}>
               {isProcessManager && ticket.status === 'Assigned' ? (
-                <PrimaryButton
-                  text="Cerrar Ticket"
-                  iconProps={{ iconName: 'CheckMark' }}
-                  onClick={handleClose}
-                  disabled={isSubmitting}
-                />
+                <TooltipHost content={!ticket.atencion ? 'Debes marcar el ticket "En Atención" antes de cerrarlo' : ''}>
+                  <PrimaryButton
+                    text="Cerrar Ticket"
+                    iconProps={{ iconName: 'CheckMark' }}
+                    onClick={handleClose}
+                    disabled={isSubmitting || !ticket.atencion}
+                  />
+                </TooltipHost>
               ) : (
                 <>
                   <PrimaryButton text="Aprobar" onClick={handleApprove} disabled={isSubmitting} />

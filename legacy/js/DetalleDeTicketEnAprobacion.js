@@ -36,7 +36,7 @@ $(document).ready(function () {
     alert(
       "¡Ups! Por favor, utilice Google Chrome o Firefox para usar la plataforma",
     );
-    window.location.href = "https://chimalliapps.sharepoint.com/ST/";
+    window.location.href = "https://promagroupmex.sharepoint.com/sites/Paperless/ST/";
   }
 
   const tooltipTriggerList = document.querySelectorAll(
@@ -49,7 +49,7 @@ $(document).ready(function () {
 
   context = new SP.ClientContext.get_current();
   contextCol = new SP.ClientContext(
-    "https://chimalliapps.sharepoint.com/vacations/",
+    "https://promagroupmex.sharepoint.com/sites/Paperless/VR/",
   );
   web = context.get_web();
   cuser = web.get_currentUser();
@@ -564,7 +564,7 @@ function loadApprovalProcess(callback) {
             nomResp = "";
 
           if (resultado === "Pendiente") {
-            nomResp = `<a href='https://teams.microsoft.com/l/chat/0/0?users=${oListItem.get_item("Responsable").get_email()}&topicName=${encodeURIComponent("Sistema de Tickets")}&message=${encodeURIComponent("Hola! Buen día.<br/><br/>¿Podrías ayudarme por favor, en revisar el siguiente ticket? Necesita tu aprobación para avanzar:<br/><br/>Título: <b>" + $("#txtTitle").val() + "</b><br/><br/>Puedes acceder con la siguiente liga:<br/>https://chimalliapps.sharepoint.com/ST/Pages/Detalle de ticket en Aprobacion.aspx?idSol=" + idcode)}' target='_blank' title='Escríbeme por Teams'>${oListItem.get_item("Responsable").get_lookupValue()}</a><br/>`;
+            nomResp = `<a href='https://teams.microsoft.com/l/chat/0/0?users=${oListItem.get_item("Responsable").get_email()}&topicName=${encodeURIComponent("Sistema de Tickets")}&message=${encodeURIComponent("Hola! Buen día.<br/><br/>¿Podrías ayudarme por favor, en revisar el siguiente ticket? Necesita tu aprobación para avanzar:<br/><br/>Título: <b>" + $("#txtTitle").val() + "</b><br/><br/>Puedes acceder con la siguiente liga:<br/>https://promagroupmex.sharepoint.com/sites/Paperless/ST/Pages/Detalle de ticket en Aprobacion.aspx?idSol=" + idcode)}' target='_blank' title='Escríbeme por Teams'>${oListItem.get_item("Responsable").get_lookupValue()}</a><br/>`;
           } else {
             nomResp = oListItem.get_item("Responsable").get_lookupValue();
             fecha = `<br/>${moment(oListItem.get_item("Modified")).format("DD/MM/yyyy hh:mm a")}`;
@@ -593,7 +593,7 @@ function loadApprovalProcess(callback) {
 
             pendientesPorGrupo[0].stepElement.html(`
             ${pendientesPorGrupo[0].title}<br/>
-            <a href='https://teams.microsoft.com/l/chat/0/0?users=${integrantes[0].get_email()}&topicName=${encodeURIComponent("Sistema de Tickets")}&message=${encodeURIComponent("Hola! Buen día.<br/><br/>¿Podrías ayudarme por favor, en revisar el siguiente ticket? Necesita tu aprobación para avanzar:<br/><br/>Título: <b>" + $("#txtTitle").val() + "</b><br/><br/>Puedes acceder con la siguiente liga:<br/>https://chimalliapps.sharepoint.com/ST/Pages/Detalle de ticket en Aprobacion.aspx?idSol=" + idcode)}' target='_blank' title='Escríbeme por Teams'>${integrantes[0].get_lookupValue()}</a>`);
+            <a href='https://teams.microsoft.com/l/chat/0/0?users=${integrantes[0].get_email()}&topicName=${encodeURIComponent("Sistema de Tickets")}&message=${encodeURIComponent("Hola! Buen día.<br/><br/>¿Podrías ayudarme por favor, en revisar el siguiente ticket? Necesita tu aprobación para avanzar:<br/><br/>Título: <b>" + $("#txtTitle").val() + "</b><br/><br/>Puedes acceder con la siguiente liga:<br/>https://promagroupmex.sharepoint.com/sites/Paperless/ST/Pages/Detalle de ticket en Aprobacion.aspx?idSol=" + idcode)}' target='_blank' title='Escríbeme por Teams'>${integrantes[0].get_lookupValue()}</a>`);
 
             for (var i = 0; i < integrantes.length; i++) {
               if (integrantes[i].get_lookupId() === cuser.get_id()) {
@@ -831,7 +831,7 @@ function asignarEventos() {
   // Botones  (Cerrar, Enviar, Cancelar)
   $("#btnCerrar").click(function () {
     window.location.href =
-      "https://chimalliapps.sharepoint.com/ST/Pages/Consulta%20Tickets%20ProcessManager.aspx";
+      "https://promagroupmex.sharepoint.com/sites/Paperless/ST/Pages/Consulta%20Tickets%20ProcessManager.aspx";
   });
 
   $("#btnEnviar").click(function () {

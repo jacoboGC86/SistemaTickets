@@ -9,10 +9,19 @@
           "manifest": "./src/webparts/gestionTickets/GestionTicketsWebPart.manifest.json"
         }
       ]
+    },
+    "gestion-sistema-tickets-web-part": {
+      "components": [
+        {
+          "entrypoint": "./lib/webparts/gestionSistemaTickets/GestionSistemaTicketsWebPart.js",
+          "manifest": "./src/webparts/gestionSistemaTickets/GestionSistemaTicketsWebPart.manifest.json"
+        }
+      ]
     }
   },
   "externals": {},
   "localizedResources": {
-    "GestionTicketsWebPartStrings": "lib/webparts/gestionTickets/loc/{locale}.js"
+    "GestionTicketsWebPartStrings": "lib/webparts/gestionTickets/loc/{locale}.js",
+    "GestionSistemaTicketsWebPartStrings": "lib/webparts/gestionSistemaTickets/loc/{locale}.js"
   }
 }

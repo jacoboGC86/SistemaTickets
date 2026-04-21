@@ -41,7 +41,7 @@ Assembly="Microsoft.SharePoint, Version=16.0.0.0, Culture=neutral, PublicKeyToke
 	<link rel="stylesheet" type="text/css" href="../SiteAssets/css/Contratos.css" />
 	<link rel="stylesheet" type="text/css" href="../SiteAssets/css/EstilosTickets.css" />
 	<link rel="stylesheet"
-		href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+		href="../SiteAssets/css/all.min.css">
 
 
 	<script src="../SiteAssets/js/jquery.min.js"></script>
