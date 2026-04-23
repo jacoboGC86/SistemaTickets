@@ -5,7 +5,7 @@ $(document).ready(function () {
 
     if (iebrowser) {
         alert("¡Ups! Por favor, utilice Google Chrome o Firefox para usar la plataforma");
-        window.location.href = "https://chimalliapps.sharepoint.com/ST/";
+        window.location.href = "https://promagroupmex.sharepoint.com/sites/paperless/ST/";
     }
 
     $("#DeltaPlaceHolderPageTitleInTitleArea a").text("Administración de tickets");
@@ -44,8 +44,18 @@ $(document).ready(function () {
 
             while (ticketEnumerator.moveNext()) {
                 var ticketItem = ticketEnumerator.get_current();
-                const tiempoTranscurridoTexto = getTimeDifference(ticketItem.get_item("Modified"));
-                const tiempoTranscurridoHoras = getHoursDifference(ticketItem.get_item("Modified"));
+                var ticketStatus = ticketItem.get_item("Status");
+                var fechaAtencion = ticketItem.get_item("FechaAtencion");
+                var tiempoTranscurridoTexto = "-";
+                var tiempoTranscurridoHoras = 0;
+
+                if (ticketStatus === "Cerrado" && fechaAtencion) {
+                    tiempoTranscurridoHoras = getBusinessHoursDifference(fechaAtencion, ticketItem.get_item("Modified"));
+                    tiempoTranscurridoTexto = getBusinessTimeDifference(fechaAtencion, ticketItem.get_item("Modified"));
+                } else if (ticketStatus === "Assigned" && !fechaAtencion) {
+                    tiempoTranscurridoHoras = getBusinessHoursDifference(ticketItem.get_item("Modified"));
+                    tiempoTranscurridoTexto = getBusinessTimeDifference(ticketItem.get_item("Modified"));
+                }
                 var fecha = ticketItem.get_item("Modified"); 
                  // Array con los nombres de los meses
                 const meses = [
@@ -131,7 +141,7 @@ function getTimeDifference(dateStr) {
     if (hours > 0) result.push(`${hours} hora(s)`);
     if (minutes > 0) result.push(`${minutes} minuto(s)`);
 
-    return result.length > 0 ? result.join(", ") : "Justo ahora";
+    return result.length > 0 ? result.join(", ") : "Menos de una hora";
 }
 
 function getHoursDifference(dateStr) {
@@ -139,4 +149,70 @@ function getHoursDifference(dateStr) {
     const created = new Date(dateStr);
     const diffMs = now - created;
     return Math.floor(diffMs / (1000 * 60 * 60)); // horas enteras
+}
+
+// Calcula las horas hábiles transcurridas (Lun-Vie, 8am-6pm) entre startStr y endStr
+// Si endStr se omite, usa la fecha/hora actual
+function getBusinessHoursDifference(startStr, endStr) {
+    const WORK_START = 8;  // 8am
+    const WORK_END   = 18; // 6pm
+
+    let current = new Date(startStr);
+    const end   = endStr ? new Date(endStr) : new Date();
+
+    if (current >= end) return 0;
+
+    let totalMs = 0;
+
+    while (current < end) {
+        var day = current.getDay(); // 0=Dom, 1=Lun … 5=Vie, 6=Sáb
+
+        if (day === 0 || day === 6) {
+            // Fin de semana: avanzar al lunes siguiente a las 8am
+            var daysToMonday = day === 0 ? 1 : 2;
+            current.setDate(current.getDate() + daysToMonday);
+            current.setHours(WORK_START, 0, 0, 0);
+            continue;
+        }
+
+        var hour = current.getHours();
+
+        if (hour < WORK_START) {
+            // Antes del horario laboral: saltar a las 8am
+            current.setHours(WORK_START, 0, 0, 0);
+            continue;
+        }
+
+        if (hour >= WORK_END) {
+            // Después del horario laboral: avanzar al día siguiente a las 8am
+            current.setDate(current.getDate() + 1);
+            current.setHours(WORK_START, 0, 0, 0);
+            continue;
+        }
+
+        // Dentro del horario laboral: calcular hasta el fin del bloque
+        var endOfWorkDay = new Date(current);
+        endOfWorkDay.setHours(WORK_END, 0, 0, 0);
+
+        var blockEnd = end < endOfWorkDay ? end : endOfWorkDay;
+        totalMs += blockEnd - current;
+        current = new Date(blockEnd);
+    }
+
+    return Math.floor(totalMs / (1000 * 60 * 60));
+}
+
+// Versión de texto para horas hábiles
+// Si endStr se omite, usa la fecha/hora actual
+function getBusinessTimeDifference(startStr, endStr) {
+    var hours = getBusinessHoursDifference(startStr, endStr);
+    var workHoursPerDay = 10; // 8am-6pm = 10 horas
+    var days = Math.floor(hours / workHoursPerDay);
+    var remainingHours = hours % workHoursPerDay;
+
+    var result = [];
+    if (days > 0) result.push(days + " día(s) hábil(es)");
+    if (remainingHours > 0) result.push(remainingHours + " hora(s)");
+
+    return result.length > 0 ? result.join(", ") : "Menos de una hora";
 }

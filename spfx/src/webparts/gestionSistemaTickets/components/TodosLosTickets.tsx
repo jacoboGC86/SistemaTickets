@@ -16,6 +16,7 @@ import {
   Link,
   Dropdown,
   IDropdownOption,
+  Icon,
 } from '@fluentui/react';
 import ListSvc from '../../../services/ListSvc';
 
@@ -67,20 +68,63 @@ const MESES = [
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function getTimeDifference(dateStr: string): string {
-  const now = new Date();
-  const date = new Date(dateStr);
-  const diffMs = now.getTime() - date.getTime();
+function getBusinessHoursDifference(startStr: string, endStr?: string): number {
+  const WORK_START = 8;
+  const WORK_END   = 18;
 
-  const minutes = Math.floor(diffMs / 60000) % 60;
-  const hours = Math.floor(diffMs / (1000 * 60 * 60)) % 24;
-  const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  const current = new Date(startStr);
+  const end     = endStr ? new Date(endStr) : new Date();
+
+  if (current >= end) return 0;
+
+  let totalMs = 0;
+  const cursor = new Date(current);
+
+  while (cursor < end) {
+    const day = cursor.getDay();
+
+    if (day === 0 || day === 6) {
+      const daysToMonday = day === 0 ? 1 : 2;
+      cursor.setDate(cursor.getDate() + daysToMonday);
+      cursor.setHours(WORK_START, 0, 0, 0);
+      continue;
+    }
+
+    const hour = cursor.getHours();
+
+    if (hour < WORK_START) {
+      cursor.setHours(WORK_START, 0, 0, 0);
+      continue;
+    }
+
+    if (hour >= WORK_END) {
+      cursor.setDate(cursor.getDate() + 1);
+      cursor.setHours(WORK_START, 0, 0, 0);
+      continue;
+    }
+
+    const endOfWorkDay = new Date(cursor);
+    endOfWorkDay.setHours(WORK_END, 0, 0, 0);
+
+    const blockEnd = end < endOfWorkDay ? end : endOfWorkDay;
+    totalMs += blockEnd.getTime() - cursor.getTime();
+    cursor.setTime(blockEnd.getTime());
+  }
+
+  return Math.floor(totalMs / (1000 * 60 * 60));
+}
+
+function getBusinessTimeDifference(startStr: string, endStr?: string): string {
+  const hours = getBusinessHoursDifference(startStr, endStr);
+  const workHoursPerDay = 10;
+  const days = Math.floor(hours / workHoursPerDay);
+  const remainingHours = hours % workHoursPerDay;
 
   const parts: string[] = [];
-  if (days > 0) parts.push(`${days} día(s)`);
-  if (hours > 0) parts.push(`${hours} hora(s)`);
-  if (minutes > 0 || parts.length === 0) parts.push(`${minutes} minuto(s)`);
-  return parts.join(', ');
+  if (days > 0) parts.push(`${days} día(s) `);
+  if (remainingHours > 0) parts.push(`${remainingHours} hora(s)`);
+
+  return parts.length > 0 ? parts.join(', ') : 'Menos de una hora';
 }
 
 // ─── Base column definitions ──────────────────────────────────────────────────
@@ -134,7 +178,7 @@ export default class TodosLosTickets extends React.Component<ITodosLosTicketsPro
       const ticketsRaw = await ListSvc.getItems(
         'Tickets',
         undefined,
-        `$select=Id,Title,TipoTicket,Status,Prioridad,Modified,` +
+        `$select=Id,Title,TipoTicket,Status,Prioridad,Modified,FechaAtencion,` +
           `ProcessManager/Title,Categoria/Title,Author/Title` +
           `&$expand=ProcessManager,Categoria,Author` +
           `&$filter=Created ge datetime'${yearStart}' and Created le datetime'${yearEnd}'` +
@@ -143,17 +187,27 @@ export default class TodosLosTickets extends React.Component<ITodosLosTicketsPro
       );
 
       const tickets: ITicketAdmonRow[] = (ticketsRaw ?? []).map((item: any) => {
-        const modified: string = item.Modified ?? '';
+        const modified: string     = item.Modified ?? '';
+        const fechaAtencion: string = item.FechaAtencion ?? '';
+        const status: string        = item.Status ?? '';
         const modDate = modified ? new Date(modified) : new Date();
+
+        let tiempoAsignacion = '-';
+        if (status === 'Cerrado' && fechaAtencion) {
+          tiempoAsignacion = getBusinessTimeDifference(fechaAtencion, modified);
+        } else if (status === 'Assigned' && !fechaAtencion) {
+          tiempoAsignacion = getBusinessTimeDifference(modified);
+        }
+
         return {
           id: item.Id,
           title: item.Title ?? '',
           processManager: item.ProcessManager?.Title ?? '',
           tipoTicket: item.TipoTicket ?? '',
           categoria: item.Categoria?.Title ?? 'Sin categoría',
-          status: item.Status ?? '',
+          status,
           prioridad: item.Prioridad ?? '',
-          tiempoAsignacion: modified ? getTimeDifference(modified) : '',
+          tiempoAsignacion,
           mes: MESES[modDate.getUTCMonth()],
           anio: modDate.getUTCFullYear(),
           solicita: item.Author?.Title ?? '',
@@ -218,9 +272,85 @@ export default class TodosLosTickets extends React.Component<ITodosLosTicketsPro
       isSorted: col.fieldName === sortKey,
       isSortedDescending: col.fieldName === sortKey ? isSortedDescending : false,
       onColumnClick: this._onColumnHeaderClick,
-      onRender: col.key === 'status' ? this._renderStatus : undefined,
+      onRender: col.key === 'status'
+        ? this._renderStatus
+        : col.key === 'tipoTicket'
+          ? this._renderTipoTicket
+          : col.key === 'prioridad'
+            ? this._renderPrioridad
+            : undefined,
     }));
   }
+
+  private _renderPrioridad = (item: ITicketAdmonRow): JSX.Element => {
+    const val = item.prioridad;
+    const lower = val.toLowerCase();
+    let bg = '#e1e1e1';
+    let border = '#999';
+    let color = '#323130';
+    let iconName: string | undefined;
+
+    if (lower === 'baja') {
+      bg = '#d4edda'; border = '#155724'; color = '#155724';
+    } else if (lower === 'media') {
+      bg = '#ffe0b2'; border = '#e65100'; color = '#bf360c';
+      iconName = 'ShieldAlert';
+    } else if (lower === 'alta') {
+      bg = '#ffcdd2'; border = '#b71c1c'; color = '#7f0000';
+      iconName = 'AlertSolid';
+    }
+
+    return (
+      <span style={{
+        backgroundColor: bg,
+        border: `1px solid ${border}`,
+        color,
+        borderRadius: 12,
+        padding: '2px 10px',
+        fontSize: 12,
+        fontWeight: 600,
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 4,
+        whiteSpace: 'nowrap',
+      }}>
+        {iconName && <Icon iconName={iconName} style={{ fontSize: 12 }} />}
+        {val}
+      </span>
+    );
+  };
+
+  private _renderTipoTicket = (item: ITicketAdmonRow): JSX.Element => {
+    const val = item.tipoTicket;
+    const lower = val.toLowerCase();
+    let bg = '#e1e1e1';
+    let border = '#999';
+    let color = '#323130';
+
+    if (lower === 'request') {
+      bg = '#cce5ff'; border = '#004085'; color = '#004085';
+    } else if (lower === 'incidente' || lower === 'incident') {
+      bg = '#f8d7da'; border = '#721c24'; color = '#721c24';
+    } else if (lower === 'cambio' || lower === 'change') {
+      bg = '#fff3cd'; border = '#856404'; color = '#856404';
+    }
+
+    return (
+      <span style={{
+        backgroundColor: bg,
+        border: `1px solid ${border}`,
+        color,
+        borderRadius: 12,
+        padding: '2px 10px',
+        fontSize: 12,
+        fontWeight: 600,
+        display: 'inline-block',
+        whiteSpace: 'nowrap',
+      }}>
+        {val}
+      </span>
+    );
+  };
 
   private _renderStatus = (item: ITicketAdmonRow): JSX.Element => {
     const { onVerDetalle } = this.props;

@@ -904,50 +904,97 @@ function asignarEventos() {
         context.load(oListItemT);
 
         context.executeQueryAsync(function () {
-          // Si ya estaba Assigned → cerrar
-          if (status == "Assigned") {
-            alertify.alert(
-              "Sistema de Ticket",
-              "El ticket se ha cerrado correctamente.",
-              function () {
-                window.location.href = "Consulta Tickets ProcessManager.aspx";
-              },
-            );
-          } else {
-            // Crea el siguiente aprobación
-            var itemCreateInfoAp = new SP.ListItemCreationInformation();
-            var oListItemAp = oListAp.addItem(itemCreateInfoAp);
-
-            oListItemAp.set_item(
-              "Title",
-              apS != null ? apS.stepName : "Assigned",
-            );
-            oListItemAp.set_item("Resultado", "Pendiente");
-            oListItemAp.set_item("Ticket", idcode);
-
-            if (apS != null && apS.approvalGroup != null) {
-              oListItemAp.set_item("Grupo", apS.approvalGroup);
-            } else {
-              var userFieldNext = new SP.FieldUserValue();
-              userFieldNext.set_lookupId(
-                apS != null ? idManArea : idProcessMan,
-              );
-              oListItemAp.set_item("Responsable", userFieldNext);
-            }
-
-            oListItemAp.update();
-            context.load(oListItemAp);
-
-            context.executeQueryAsync(function () {
+          function procederConFlujo() {
+            // Si ya estaba Assigned → cerrar
+            if (status == "Assigned") {
               alertify.alert(
                 "Sistema de Ticket",
-                "Solicitud aprobada exitosamente.",
+                "El ticket se ha cerrado correctamente.",
                 function () {
                   window.location.href = "Consulta Tickets ProcessManager.aspx";
                 },
               );
-            }, onRequestFail);
+            } else {
+              // Crea el siguiente aprobación
+              var itemCreateInfoAp = new SP.ListItemCreationInformation();
+              var oListItemAp = oListAp.addItem(itemCreateInfoAp);
+
+              oListItemAp.set_item(
+                "Title",
+                apS != null ? apS.stepName : "Assigned",
+              );
+              oListItemAp.set_item("Resultado", "Pendiente");
+              oListItemAp.set_item("Ticket", idcode);
+
+              if (apS != null && apS.approvalGroup != null) {
+                oListItemAp.set_item("Grupo", apS.approvalGroup);
+              } else {
+                var userFieldNext = new SP.FieldUserValue();
+                userFieldNext.set_lookupId(
+                  apS != null ? idManArea : idProcessMan,
+                );
+                oListItemAp.set_item("Responsable", userFieldNext);
+              }
+
+              oListItemAp.update();
+              context.load(oListItemAp);
+
+              context.executeQueryAsync(function () {
+                alertify.alert(
+                  "Sistema de Ticket",
+                  "Solicitud aprobada exitosamente.",
+                  function () {
+                    window.location.href = "Consulta Tickets ProcessManager.aspx";
+                  },
+                );
+              }, onRequestFail);
+            }
           }
+
+          var comentarioText = $("#txtComentarios").val().trim();
+
+          if (comentarioText === "") {
+            procederConFlujo();
+            return;
+          }
+
+          var listComentarios = context.get_web().get_lists().getByTitle("Comentarios");
+          var itemCreateInfoCom = new SP.ListItemCreationInformation();
+          var itemCom = listComentarios.addItem(itemCreateInfoCom);
+
+          itemCom.set_item("Ticket", idcode);
+          itemCom.set_item("Comentario", comentarioText);
+          itemCom.set_item("Title", status);
+
+          var userValueCom = new SP.FieldUserValue();
+          userValueCom.set_lookupId(cuser.get_id());
+          itemCom.set_item("Responsable", userValueCom);
+
+          itemCom.update();
+
+          context.executeQueryAsync(function () {
+            var comentarioId = itemCom.get_id();
+            var files = $("#fileDoctoIT")[0].files;
+
+            if (files.length === 0) {
+              procederConFlujo();
+              return;
+            }
+
+            setTimeout(function () {
+              subirArchivos(
+                files,
+                0,
+                [],
+                web.get_serverRelativeUrl(),
+                "Comentarios",
+                comentarioId,
+                function () {
+                  procederConFlujo();
+                },
+              );
+            }, 300);
+          }, onRequestFail);
         }, onRequestFail);
       }, onRequestFail);
     }, onRequestFail);
@@ -1370,7 +1417,7 @@ function asignarEventos() {
     item.set_item("Atencion", true);
 
     //GUARDA FECHA EN QUE INICIA LA ATENCIÓN (detiene SLA)
-    item.set_item("FechaAtencion", new Date());
+    item.set_item("FechaAtencion", (new Date()).toISOString());
 
     item.update();
 

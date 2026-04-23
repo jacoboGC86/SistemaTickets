@@ -4,6 +4,7 @@ import { Nav, INavLink, INavStyles } from '@fluentui/react';
 import NuevaPlantilla from './NuevaPlantilla';
 import ConsultaPlantillas from './ConsultaPlantillas';
 import NuevaCategoria from './NuevaCategoria';
+import TodosLosTickets from './TodosLosTickets';
 
 const navStyles: Partial<INavStyles> = {
   root: {
@@ -36,12 +37,13 @@ export interface IGestionSistemaTicketsState {
   isNuevaPlantilla: boolean;
   isConsultaPlantillas: boolean;
   isNuevaCategoria: boolean;
+  isTodosLosTickets: boolean;
 }
 
 export default class GestionSistemaTickets extends React.Component<IGestionSistemaTicketsProps, IGestionSistemaTicketsState> {
   constructor(props: IGestionSistemaTicketsProps) {
     super(props);
-    this.state = { activeKey: null, isNuevaPlantilla: false, isConsultaPlantillas: false, isNuevaCategoria: false };
+    this.state = { activeKey: null, isNuevaPlantilla: false, isConsultaPlantillas: false, isNuevaCategoria: false, isTodosLosTickets: false };
   }
 
   public render(): React.ReactElement<IGestionSistemaTicketsProps> {
@@ -69,6 +71,10 @@ export default class GestionSistemaTickets extends React.Component<IGestionSiste
           isOpen={this.state.isNuevaCategoria}
           onDismiss={() => this.setState({ isNuevaCategoria: false, activeKey: null })}
         />
+        <TodosLosTickets
+          isOpen={this.state.isTodosLosTickets}
+          onDismiss={() => this.setState({ isTodosLosTickets: false, activeKey: null })}
+        />
       </section>
     );
   }
@@ -81,6 +87,8 @@ export default class GestionSistemaTickets extends React.Component<IGestionSiste
       this.setState({ activeKey: item.key, isConsultaPlantillas: true });
     } else if (item?.key === 'nueva-categoria') {
       this.setState({ activeKey: item.key, isNuevaCategoria: true });
+    } else if (item?.key === 'todos-los-tickets') {
+      this.setState({ activeKey: item.key, isTodosLosTickets: true });
     } else if (item?.key) {
       this.setState({ activeKey: item.key });
     }

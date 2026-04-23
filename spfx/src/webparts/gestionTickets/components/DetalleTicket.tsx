@@ -763,50 +763,7 @@ const DetalleTicket: React.FC<IDetalleTicketProps> = ({ isOpen, onDismiss, ticke
       setIsSubmitting(false);
     }
   };
-
-  const handleUpComment = async (): Promise<void> => {
-    if (!ticket || !comentario.trim()) { setErrorMessage('Ingrese un comentario antes de subir.'); return; }
-    setIsSubmitting(true);
-    try {
-      // Create comment item with Responsable (current user)
-      const newComment = await ListSvc.postListItem(
-        'Comentarios',
-        JSON.stringify({
-          '__metadata': { type: entityTypes.comentarios },
-          Title: ticket.status,
-          Comentario: comentario,
-          TicketId: ticket.id,
-          ResponsableId: currentUserId,
-        })
-      );
-
-      // Upload attachment if one was selected
-      if (selectedCommentFile) {
-        const comentarioId: number = newComment?.d?.Id ?? newComment?.Id;
-        if (comentarioId) {
-          const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = (e) => resolve(e.target!.result as ArrayBuffer);
-            reader.onerror = (e) => reject(e);
-            reader.readAsArrayBuffer(selectedCommentFile);
-          });
-          await ListSvc.postListItemAttachment('Comentarios', comentarioId, selectedCommentFile.name, arrayBuffer);
-        }
-      }
-
-      setComentario('');
-      setSelectedCommentFile(null);
-      setSuccessMessage('Comentario guardado.');
-      dataLoaded.current = false;
-      await loadAll(ticket.id);
-    } catch (e) {
-      console.error(e);
-      setErrorMessage('Error al guardar el comentario.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
+  
   // Placeholder needed to satisfy compile
   const [submitAction, setSubmitAction] = React.useState<string>('');
 
@@ -1249,7 +1206,7 @@ const DetalleTicket: React.FC<IDetalleTicketProps> = ({ isOpen, onDismiss, ticke
                       <IconButton iconProps={{ iconName: 'Cancel' }} title="Eliminar" onClick={() => setSelectedCommentFile(null)} />
                     </span>
                   )}
-                  <PrimaryButton text="Subir" onClick={handleUpComment} disabled={isSubmitting} />
+                  
                 </Stack>
               </div>
             </div>
