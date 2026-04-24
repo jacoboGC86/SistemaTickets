@@ -4,7 +4,9 @@ import { Nav, INavLink, INavStyles } from '@fluentui/react';
 import NuevaPlantilla from './NuevaPlantilla';
 import ConsultaPlantillas from './ConsultaPlantillas';
 import NuevaCategoria from './NuevaCategoria';
+import ConsultaCategorias from './ConsultaCategorias';
 import TodosLosTickets from './TodosLosTickets';
+import ListSvc from '../../../services/ListSvc';
 
 const navStyles: Partial<INavStyles> = {
   root: {
@@ -19,7 +21,6 @@ const navLinks: INavLink[] = [
   { name: 'Nueva categoría', url: '#nueva-categoria', key: 'nueva-categoria' },
   { name: 'Consulta de categorías', url: '#consulta-categorias', key: 'consulta-categorias' },
   { name: 'Todos los tickets', url: '#todos-los-tickets', key: 'todos-los-tickets' },
-  { name: 'Tickets cerrados', url: '#tickets-cerrados', key: 'tickets-cerrados' },
   { name: 'Base de conocimiento', url: '#base-de-conocimiento', key: 'base-de-conocimiento' },
 ];
 
@@ -29,6 +30,7 @@ export interface IGestionSistemaTicketsProps {
   environmentMessage: string;
   hasTeamsContext: boolean;
   userDisplayName: string;
+  currentUserLoginName: string;
 }
 
 
@@ -37,20 +39,43 @@ export interface IGestionSistemaTicketsState {
   isNuevaPlantilla: boolean;
   isConsultaPlantillas: boolean;
   isNuevaCategoria: boolean;
+  isConsultaCategorias: boolean;
   isTodosLosTickets: boolean;
+  authorized: boolean | null;
 }
 
 export default class GestionSistemaTickets extends React.Component<IGestionSistemaTicketsProps, IGestionSistemaTicketsState> {
   constructor(props: IGestionSistemaTicketsProps) {
     super(props);
-    this.state = { activeKey: null, isNuevaPlantilla: false, isConsultaPlantillas: false, isNuevaCategoria: false, isTodosLosTickets: false };
+    this.state = { activeKey: null, isNuevaPlantilla: false, isConsultaPlantillas: false, isNuevaCategoria: false, isConsultaCategorias: false, isTodosLosTickets: false, authorized: null };
+  }
+
+  public async componentDidMount(): Promise<void> {
+    try {
+      const items = await ListSvc.getItems(
+        'Configuraciones',
+        undefined,
+        `$select=Personas/EMail&$expand=Personas&$filter=Title eq 'IT'&$top=1`
+      );
+      const personas: { EMail: string }[] = items?.[0]?.Personas ?? [];
+      const loginName = this.props.currentUserLoginName;
+      const authorized = personas.some(p => p.EMail.toLowerCase() === loginName);
+      this.setState({ authorized });
+    } catch {
+      this.setState({ authorized: false });
+    }
   }
 
   public render(): React.ReactElement<IGestionSistemaTicketsProps> {
     const { hasTeamsContext } = this.props;
+    const { authorized } = this.state;
+
+    if (authorized === null) return null;  // verificando acceso
+    if (!authorized) return null;           // sin acceso
 
     return (
       <section className={`${styles.gestionSistemaTickets} ${hasTeamsContext ? styles.teams : ''}`}>
+        <h5 className={styles.title}>{this.props.description}</h5>
         <div className={styles.menuContainer}>
           <Nav
             groups={[{ links: navLinks }]}
@@ -71,6 +96,10 @@ export default class GestionSistemaTickets extends React.Component<IGestionSiste
           isOpen={this.state.isNuevaCategoria}
           onDismiss={() => this.setState({ isNuevaCategoria: false, activeKey: null })}
         />
+        <ConsultaCategorias
+          isOpen={this.state.isConsultaCategorias}
+          onDismiss={() => this.setState({ isConsultaCategorias: false, activeKey: null })}
+        />
         <TodosLosTickets
           isOpen={this.state.isTodosLosTickets}
           onDismiss={() => this.setState({ isTodosLosTickets: false, activeKey: null })}
@@ -87,6 +116,8 @@ export default class GestionSistemaTickets extends React.Component<IGestionSiste
       this.setState({ activeKey: item.key, isConsultaPlantillas: true });
     } else if (item?.key === 'nueva-categoria') {
       this.setState({ activeKey: item.key, isNuevaCategoria: true });
+    } else if (item?.key === 'consulta-categorias') {
+      this.setState({ activeKey: item.key, isConsultaCategorias: true });
     } else if (item?.key === 'todos-los-tickets') {
       this.setState({ activeKey: item.key, isTodosLosTickets: true });
     } else if (item?.key) {

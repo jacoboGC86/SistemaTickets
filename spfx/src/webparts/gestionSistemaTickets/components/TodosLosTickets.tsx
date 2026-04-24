@@ -47,6 +47,9 @@ interface ITodosLosTicketsState {
   error: string | null;
   tickets: ITicketAdmonRow[];
   filterText: string;
+  filterPrioridad: string;
+  filterTipo: string;
+  filterStatus: string;
   sortKey: keyof ITicketAdmonRow;
   isSortedDescending: boolean;
   selectedYear: number;
@@ -60,6 +63,27 @@ const YEAR_OPTIONS: IDropdownOption[] = Array.from(
   { length: CURRENT_YEAR - 2025 + 1 },
   (_, i) => { const y = 2025 + i; return { key: y, text: String(y) }; }
 );
+
+const PRIORIDAD_OPTIONS: IDropdownOption[] = [
+  { key: '', text: 'Todas las prioridades' },
+  { key: 'Baja', text: 'Baja' },
+  { key: 'Media', text: 'Media' },
+  { key: 'Alta', text: 'Alta' },
+];
+
+const TIPO_OPTIONS: IDropdownOption[] = [
+  { key: '', text: 'Todos los tipos' },
+  { key: 'Request', text: 'Request' },
+  { key: 'Incident', text: 'Incidente' },
+  { key: 'Change', text: 'Cambio' },
+];
+
+const STATUS_OPTIONS: IDropdownOption[] = [
+  { key: '', text: 'Todos' },
+  { key: 'En Aprobación', text: 'En Aprobación' },
+  { key: 'Assigned', text: 'Asignado' },
+  { key: 'Cerrado', text: 'Cerrado' },
+];
 
 const MESES = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -153,6 +177,9 @@ export default class TodosLosTickets extends React.Component<ITodosLosTicketsPro
       error: null,
       tickets: [],
       filterText: '',
+      filterPrioridad: '',
+      filterTipo: '',
+      filterStatus: '',
       sortKey: 'id',
       isSortedDescending: true,
       selectedYear: CURRENT_YEAR,
@@ -161,7 +188,7 @@ export default class TodosLosTickets extends React.Component<ITodosLosTicketsPro
 
   public componentDidUpdate(prevProps: ITodosLosTicketsProps): void {
     if (this.props.isOpen && !prevProps.isOpen) {
-      this.setState({ filterText: '', sortKey: 'id', isSortedDescending: true, selectedYear: CURRENT_YEAR }, () => {
+      this.setState({ filterText: '', filterPrioridad: '', filterTipo: '', filterStatus: '', sortKey: 'id', isSortedDescending: true, selectedYear: CURRENT_YEAR }, () => {
         this._loadTickets().catch(console.error);
       });
     }
@@ -231,7 +258,7 @@ export default class TodosLosTickets extends React.Component<ITodosLosTicketsPro
   };
 
   private _getSortedAndFiltered(tickets: ITicketAdmonRow[]): ITicketAdmonRow[] {
-    const { filterText, sortKey, isSortedDescending } = this.state;
+    const { filterText, filterPrioridad, filterTipo, filterStatus, sortKey, isSortedDescending } = this.state;
 
     let result = tickets;
 
@@ -248,6 +275,22 @@ export default class TodosLosTickets extends React.Component<ITodosLosTicketsPro
         t.mes.toLowerCase().includes(lower) ||
         t.solicita.toLowerCase().includes(lower)
       );
+    }
+
+    if (filterPrioridad) {
+      result = result.filter(t => t.prioridad.toLowerCase() === filterPrioridad.toLowerCase());
+    }
+
+    if (filterTipo) {
+      result = result.filter(t => t.tipoTicket.toLowerCase() === filterTipo.toLowerCase());
+    }
+
+    if (filterStatus) {
+      if (filterStatus === 'En Aprobación') {
+        result = result.filter(t => t.status !== 'Cerrado' && t.status !== 'Assigned');
+      } else {
+        result = result.filter(t => t.status === filterStatus);
+      }
     }
 
     result = result.slice().sort((a, b) => {
@@ -370,7 +413,7 @@ export default class TodosLosTickets extends React.Component<ITodosLosTicketsPro
 
   public render(): React.ReactElement<ITodosLosTicketsProps> {
     const { isOpen, onDismiss } = this.props;
-    const { loading, error, tickets, filterText, selectedYear } = this.state;
+    const { loading, error, tickets, filterText, filterPrioridad, filterTipo, filterStatus, selectedYear } = this.state;
 
     const visibleTickets = this._getSortedAndFiltered(tickets);
 
@@ -404,6 +447,24 @@ export default class TodosLosTickets extends React.Component<ITodosLosTicketsPro
                     onClear={() => this.setState({ filterText: '' })}
                   />
                 </Stack.Item>
+                <Dropdown
+                  selectedKey={filterPrioridad}
+                  options={PRIORIDAD_OPTIONS}
+                  styles={{ root: { minWidth: 160 } }}
+                  onChange={(_ev, option) => this.setState({ filterPrioridad: option ? option.key as string : '' })}
+                />
+                <Dropdown
+                  selectedKey={filterTipo}
+                  options={TIPO_OPTIONS}
+                  styles={{ root: { minWidth: 150 } }}
+                  onChange={(_ev, option) => this.setState({ filterTipo: option ? option.key as string : '' })}
+                />
+                <Dropdown
+                  selectedKey={filterStatus}
+                  options={STATUS_OPTIONS}
+                  styles={{ root: { minWidth: 150 } }}
+                  onChange={(_ev, option) => this.setState({ filterStatus: option ? option.key as string : '' })}
+                />
                 <Dropdown
                   selectedKey={selectedYear}
                   options={YEAR_OPTIONS}

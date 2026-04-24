@@ -6,6 +6,7 @@ import NuevoTicket from './NuevoTicket';
 import DetalleTicket from './DetalleTicket';
 import MisTickets from './MisTickets';
 import MisTicketsPorAprobar from './MisTicketsPorAprobar';
+import MisTicketsPorAtender from './MisTicketsPorAtender';
 
 const navStyles: Partial<INavStyles> = {
   root: {
@@ -18,7 +19,7 @@ const navLinks: INavLink[] = [
   { name: 'Nuevo ticket', url: '#nuevo-ticket', key: 'nuevo-ticket' },
   { name: 'Ver mis tickets', url: '#ver-mis-tickets', key: 'ver-mis-tickets' },
   { name: 'Mis tickets por aprobar', url: '#mis-tickets-por-aprobar', key: 'mis-tickets-por-aprobar' },
-  { name: 'Dashboard', url: '#dashboard', key: 'dashboard' },
+  { name: 'Mis tickets por atender', url: '#mis-tickets-por-atender', key: 'mis-tickets-por-atender' },
 ];
 
 export interface IGestionTicketsProps {
@@ -27,6 +28,7 @@ export interface IGestionTicketsProps {
   environmentMessage: string;
   hasTeamsContext: boolean;
   userDisplayName: string;
+  currentUserLoginName: string;
 }
 
 export interface IGestionTicketsState {
@@ -34,13 +36,14 @@ export interface IGestionTicketsState {
   isDetalleTicket: boolean;
   isMisTickets: boolean;
   isMisTicketsPorAprobar: boolean;
+  isMisTicketsPorAtender: boolean;
   detalleTicketId: number | null;
 }
 
 export default class GestionTickets extends React.Component<IGestionTicketsProps, IGestionTicketsState> {
   constructor(props: IGestionTicketsProps) {
     super(props);
-    this.state = { isNuevoTicket: false, isDetalleTicket: false, isMisTickets: false, isMisTicketsPorAprobar: false, detalleTicketId: null };
+    this.state = { isNuevoTicket: false, isDetalleTicket: false, isMisTickets: false, isMisTicketsPorAprobar: false, isMisTicketsPorAtender: false, detalleTicketId: null };
   }
 
   public componentDidMount(): void {
@@ -92,6 +95,11 @@ export default class GestionTickets extends React.Component<IGestionTicketsProps
           onDismiss={() => this.setState({ isMisTicketsPorAprobar: false })}
           onVerDetalle={(id) => this.setState({ detalleTicketId: id, isDetalleTicket: true })}
         />
+        <MisTicketsPorAtender
+          isOpen={this.state.isMisTicketsPorAtender}
+          onDismiss={() => this.setState({ isMisTicketsPorAtender: false })}
+          onVerDetalle={(id) => this.setState({ detalleTicketId: id, isDetalleTicket: true })}
+        />
       </section>
     );
   }
@@ -104,6 +112,8 @@ export default class GestionTickets extends React.Component<IGestionTicketsProps
       this.setState({ isMisTickets: true });
     } else if (item?.key === 'mis-tickets-por-aprobar') {
       this.setState({ isMisTicketsPorAprobar: true });
+    } else if (item?.key === 'mis-tickets-por-atender') {
+      this.setState({ isMisTicketsPorAtender: true });
     } 
   };
 }
