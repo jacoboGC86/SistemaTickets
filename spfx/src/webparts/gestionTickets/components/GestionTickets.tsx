@@ -28,7 +28,6 @@ export interface IGestionTicketsProps {
   environmentMessage: string;
   hasTeamsContext: boolean;
   userDisplayName: string;
-  currentUserLoginName: string;
 }
 
 export interface IGestionTicketsState {
