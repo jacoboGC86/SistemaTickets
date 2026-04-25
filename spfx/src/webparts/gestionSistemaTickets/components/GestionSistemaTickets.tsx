@@ -62,11 +62,32 @@ export default class GestionSistemaTickets extends React.Component<IGestionSiste
       const personas: { EMail: string }[] = items?.[0]?.Personas ?? [];
       const loginName = this.props.currentUserLoginName;
       const authorized = personas.some(p => p.EMail.toLowerCase() === loginName);
-      this.setState({ authorized });
+      this.setState({ authorized }, () => {
+        if (authorized) {
+          this._handleHash();
+          window.addEventListener('hashchange', this._handleHash);
+        }
+      });
     } catch {
       this.setState({ authorized: false });
     }
   }
+
+  public componentWillUnmount(): void {
+    window.removeEventListener('hashchange', this._handleHash);
+  }
+
+  private _handleHash = (): void => {
+    const hash = window.location.hash;
+    this.setState({
+      isNuevaPlantilla: hash === '#nueva-plantilla',
+      isConsultaPlantillas: hash === '#consulta-plantillas',
+      isNuevaCategoria: hash === '#nueva-categoria',
+      isConsultaCategorias: hash === '#consulta-categorias',
+      isTodosLosTickets: hash === '#todos-los-tickets',
+      activeKey: hash.replace('#', '') || null,
+    });
+  };
 
   public render(): React.ReactElement<IGestionSistemaTicketsProps> {
     const { hasTeamsContext, isEditMode, usarMenuPersonalizado } = this.props;
@@ -90,29 +111,33 @@ export default class GestionSistemaTickets extends React.Component<IGestionSiste
         )}
         <NuevaPlantilla
           isOpen={this.state.isNuevaPlantilla}
-          onDismiss={() => this.setState({ isNuevaPlantilla: false, activeKey: null })}
+          onDismiss={() => { this.setState({ isNuevaPlantilla: false, activeKey: null }); history.pushState(null, '', window.location.pathname + window.location.search); }}
         />
         <ConsultaPlantillas
           isOpen={this.state.isConsultaPlantillas}
-          onDismiss={() => this.setState({ isConsultaPlantillas: false, activeKey: null })}
+          onDismiss={() => { this.setState({ isConsultaPlantillas: false, activeKey: null }); history.pushState(null, '', window.location.pathname + window.location.search); }}
         />
         <NuevaCategoria
           isOpen={this.state.isNuevaCategoria}
-          onDismiss={() => this.setState({ isNuevaCategoria: false, activeKey: null })}
+          onDismiss={() => { this.setState({ isNuevaCategoria: false, activeKey: null }); history.pushState(null, '', window.location.pathname + window.location.search); }}
         />
         <ConsultaCategorias
           isOpen={this.state.isConsultaCategorias}
-          onDismiss={() => this.setState({ isConsultaCategorias: false, activeKey: null })}
+          onDismiss={() => { this.setState({ isConsultaCategorias: false, activeKey: null }); history.pushState(null, '', window.location.pathname + window.location.search); }}
         />
         <TodosLosTickets
           isOpen={this.state.isTodosLosTickets}
-          onDismiss={() => this.setState({ isTodosLosTickets: false, activeKey: null })}
+          onDismiss={() => { this.setState({ isTodosLosTickets: false, activeKey: null }); history.pushState(null, '', window.location.pathname + window.location.search); }}
         />
       </section>
     );
   }
 
   private _onLinkClick = (ev?: React.MouseEvent<HTMLElement>, item?: INavLink): void => {
+    ev?.preventDefault();
+    if (item?.url) {
+      history.pushState(null, '', window.location.pathname + window.location.search + item.url);
+    }
     if (item?.key === 'nueva-plantilla') {
       this.setState({ activeKey: item.key, isNuevaPlantilla: true });
     } else if (item?.key === 'consulta-plantillas') {
