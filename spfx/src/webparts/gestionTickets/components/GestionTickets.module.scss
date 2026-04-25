@@ -16,3 +16,11 @@
 .menuContainer {
   width: 200px;
 }
+
+.editTitle {
+  font-size: 16px;
+  font-weight: 600;
+  padding: 8px 0 12px;
+  color: "[theme:bodyText, default: #323130]";
+  color: var(--bodyText);
+}

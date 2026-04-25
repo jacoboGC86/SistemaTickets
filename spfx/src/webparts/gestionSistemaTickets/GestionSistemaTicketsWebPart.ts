@@ -1,9 +1,12 @@
 import * as React from 'react';
 import * as ReactDom from 'react-dom';
-import { Version } from '@microsoft/sp-core-library';
+import { Version, DisplayMode } from '@microsoft/sp-core-library';
 import {
   type IPropertyPaneConfiguration,
-  PropertyPaneTextField
+  PropertyPaneTextField,
+  PropertyPaneToggle,
+  PropertyPaneFieldType,
+  IPropertyPaneCustomFieldProps
 } from '@microsoft/sp-property-pane';
 import { BaseClientSideWebPart } from '@microsoft/sp-webpart-base';
 import { IReadonlyTheme } from '@microsoft/sp-component-base';
@@ -16,6 +19,7 @@ import UserSvc from '../../services/UserSvc';
 
 export interface IGestionSistemaTicketsWebPartProps {
   description: string;
+  usarMenuPersonalizado: boolean;
 }
 
 export default class GestionSistemaTicketsWebPart extends BaseClientSideWebPart<IGestionSistemaTicketsWebPartProps> {
@@ -32,7 +36,9 @@ export default class GestionSistemaTicketsWebPart extends BaseClientSideWebPart<
         environmentMessage: this._environmentMessage,
         hasTeamsContext: !!this.context.sdks.microsoftTeams,
         userDisplayName: this.context.pageContext.user.displayName,
-        currentUserLoginName: this.context.pageContext.user.email.toLowerCase()
+        currentUserLoginName: this.context.pageContext.user.email.toLowerCase(),
+        isEditMode: this.displayMode === DisplayMode.Edit,
+        usarMenuPersonalizado: this.properties.usarMenuPersonalizado
       }
     );
 
@@ -117,7 +123,28 @@ export default class GestionSistemaTicketsWebPart extends BaseClientSideWebPart<
               groupFields: [
                 PropertyPaneTextField('description', {
                   label: strings.DescriptionFieldLabel
-                })
+                }),
+                PropertyPaneToggle('usarMenuPersonalizado', {
+                  label: 'Usar menú personalizado'
+                }),
+                {
+                  type: PropertyPaneFieldType.Custom,
+                  targetProperty: '',
+                  properties: {
+                    key: 'urlSegmentsInfo',
+                    onRender: (elem: HTMLElement) => {
+                      elem.innerHTML = `
+                        <p style="margin: 8px 0 4px;">Usa los siguientes segmentos de URL para mandar a llamar a los controles en tu página.</p>
+                        <ul style="margin: 0; padding-left: 18px;">
+                          <li>nueva-plantilla</li>
+                          <li>consulta-plantillas</li>
+                          <li>nueva-categoria</li>
+                          <li>consulta-categorias</li>
+                          <li>todos-los-tickets</li>
+                        </ul>`;
+                    }
+                  } as IPropertyPaneCustomFieldProps
+                }
               ]
             }
           ]

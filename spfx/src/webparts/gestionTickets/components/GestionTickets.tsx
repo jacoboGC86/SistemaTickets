@@ -28,6 +28,8 @@ export interface IGestionTicketsProps {
   environmentMessage: string;
   hasTeamsContext: boolean;
   userDisplayName: string;
+  isEditMode: boolean;
+  usarMenuPersonalizado: boolean;
 }
 
 export interface IGestionTicketsState {
@@ -55,9 +57,18 @@ export default class GestionTickets extends React.Component<IGestionTicketsProps
   }
 
   private _handleHash = (): void => {
-    const match = window.location.hash.match(/^#detalle-ticket-(\d+)$/);
-    if (match) {
-      this.setState({ detalleTicketId: Number(match[1]), isDetalleTicket: true });
+    const hash = window.location.hash;
+    const detalleMatch = hash.match(/^#detalle-ticket-(\d+)$/);
+    if (detalleMatch) {
+      this.setState({ isNuevoTicket: false, isDetalleTicket: true, isMisTickets: false, isMisTicketsPorAprobar: false, isMisTicketsPorAtender: false, detalleTicketId: Number(detalleMatch[1]) });
+    } else if (hash === '#nuevo-ticket') {
+      this.setState({ isNuevoTicket: true, isDetalleTicket: false, isMisTickets: false, isMisTicketsPorAprobar: false, isMisTicketsPorAtender: false });
+    } else if (hash === '#ver-mis-tickets') {
+      this.setState({ isNuevoTicket: false, isDetalleTicket: false, isMisTickets: true, isMisTicketsPorAprobar: false, isMisTicketsPorAtender: false });
+    } else if (hash === '#mis-tickets-por-aprobar') {
+      this.setState({ isNuevoTicket: false, isDetalleTicket: false, isMisTickets: false, isMisTicketsPorAprobar: true, isMisTicketsPorAtender: false });
+    } else if (hash === '#mis-tickets-por-atender') {
+      this.setState({ isNuevoTicket: false, isDetalleTicket: false, isMisTickets: false, isMisTicketsPorAprobar: false, isMisTicketsPorAtender: true });
     }
   };
 
@@ -67,20 +78,25 @@ export default class GestionTickets extends React.Component<IGestionTicketsProps
       isDarkTheme,
       environmentMessage,
       hasTeamsContext,
-      userDisplayName
+      userDisplayName,
+      isEditMode,
+      usarMenuPersonalizado
     } = this.props;
 
     return (
       <section className={`${styles.gestionTickets} ${hasTeamsContext ? styles.teams : ''}`}>
-        <div className={styles.menuContainer}>
-          <Nav groups={[{ links: navLinks }]} styles={navStyles} onLinkClick={this._onLinkClick} />
-        </div>
+        {isEditMode && <div className={styles.editTitle}>Webpart Registro de Tickets</div>}
+        {!usarMenuPersonalizado && (
+          <div className={styles.menuContainer}>
+            <Nav groups={[{ links: navLinks }]} styles={navStyles} onLinkClick={this._onLinkClick} />
+          </div>
+        )}
         <NuevoTicket isOpen={this.state.isNuevoTicket} onDismiss={() => this.setState({ isNuevoTicket: false })} />
         <DetalleTicket
           isOpen={this.state.isDetalleTicket}
           onDismiss={() => {
             this.setState({ isDetalleTicket: false });
-            history.pushState(null, '', window.location.pathname + window.location.search);
+            history.pushState(null, '', window.location.pathname + window.location.search + '#ver-mis-tickets');
           }}
           ticketId={this.state.detalleTicketId}
         />
@@ -105,6 +121,9 @@ export default class GestionTickets extends React.Component<IGestionTicketsProps
 
   private _onLinkClick = (ev?: React.MouseEvent<HTMLElement>, item?: INavLink): void => {
     ev?.preventDefault();
+    if (item?.url) {
+      history.pushState(null, '', window.location.pathname + window.location.search + item.url);
+    }
     if (item?.key === 'nuevo-ticket') {
       this.setState({ isNuevoTicket: true });
     } else if (item?.key === 'ver-mis-tickets') {

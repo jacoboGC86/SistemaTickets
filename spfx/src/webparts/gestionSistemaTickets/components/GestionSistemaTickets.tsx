@@ -31,6 +31,8 @@ export interface IGestionSistemaTicketsProps {
   hasTeamsContext: boolean;
   userDisplayName: string;
   currentUserLoginName: string;
+  isEditMode: boolean;
+  usarMenuPersonalizado: boolean;
 }
 
 
@@ -67,7 +69,7 @@ export default class GestionSistemaTickets extends React.Component<IGestionSiste
   }
 
   public render(): React.ReactElement<IGestionSistemaTicketsProps> {
-    const { hasTeamsContext } = this.props;
+    const { hasTeamsContext, isEditMode, usarMenuPersonalizado } = this.props;
     const { authorized } = this.state;
 
     if (authorized === null) return null;  // verificando acceso
@@ -75,7 +77,8 @@ export default class GestionSistemaTickets extends React.Component<IGestionSiste
 
     return (
       <section className={`${styles.gestionSistemaTickets} ${hasTeamsContext ? styles.teams : ''}`}>
-        <h5 className={styles.title}>{this.props.description}</h5>
+        {isEditMode && <div className={styles.editTitle}>Webpart Gestión de Sistema de Tickets</div>}
+        {!usarMenuPersonalizado && (
         <div className={styles.menuContainer}>
           <Nav
             groups={[{ links: navLinks }]}
@@ -84,6 +87,7 @@ export default class GestionSistemaTickets extends React.Component<IGestionSiste
             onLinkClick={this._onLinkClick}
           />
         </div>
+        )}
         <NuevaPlantilla
           isOpen={this.state.isNuevaPlantilla}
           onDismiss={() => this.setState({ isNuevaPlantilla: false, activeKey: null })}
@@ -109,7 +113,6 @@ export default class GestionSistemaTickets extends React.Component<IGestionSiste
   }
 
   private _onLinkClick = (ev?: React.MouseEvent<HTMLElement>, item?: INavLink): void => {
-    ev?.preventDefault();
     if (item?.key === 'nueva-plantilla') {
       this.setState({ activeKey: item.key, isNuevaPlantilla: true });
     } else if (item?.key === 'consulta-plantillas') {

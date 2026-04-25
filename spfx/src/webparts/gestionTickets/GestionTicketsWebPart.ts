@@ -1,9 +1,11 @@
 import * as React from 'react';
 import * as ReactDom from 'react-dom';
-import { Version } from '@microsoft/sp-core-library';
+import { Version, DisplayMode } from '@microsoft/sp-core-library';
 import {
   type IPropertyPaneConfiguration,
-  PropertyPaneTextField
+  PropertyPaneTextField,
+  PropertyPaneToggle,
+  PropertyPaneLabel
 } from '@microsoft/sp-property-pane';
 import { BaseClientSideWebPart } from '@microsoft/sp-webpart-base';
 import { IReadonlyTheme } from '@microsoft/sp-component-base';
@@ -16,6 +18,7 @@ import UserSvc from '../../services/UserSvc';
 
 export interface IGestionTicketsWebPartProps {
   description: string;
+  usarMenuPersonalizado: boolean;
 }
 
 export default class GestionTicketsWebPart extends BaseClientSideWebPart<IGestionTicketsWebPartProps> {
@@ -31,7 +34,9 @@ export default class GestionTicketsWebPart extends BaseClientSideWebPart<IGestio
         isDarkTheme: this._isDarkTheme,
         environmentMessage: this._environmentMessage,
         hasTeamsContext: !!this.context.sdks.microsoftTeams,
-        userDisplayName: this.context.pageContext.user.displayName
+        userDisplayName: this.context.pageContext.user.displayName,
+        isEditMode: this.displayMode === DisplayMode.Edit,
+        usarMenuPersonalizado: this.properties.usarMenuPersonalizado
       }
     );
 
@@ -116,7 +121,19 @@ export default class GestionTicketsWebPart extends BaseClientSideWebPart<IGestio
               groupFields: [
                 PropertyPaneTextField('description', {
                   label: strings.DescriptionFieldLabel
-                })
+                }),
+                PropertyPaneToggle('usarMenuPersonalizado', {
+                  label: 'Usar menú personalizado',
+                  onText: 'Activo',
+                  offText: 'Inactivo'
+                }),
+                PropertyPaneLabel('urlSegmentsInfo', {
+                  text: 'Usa los siguientes segmentos de URL para mandar a llamar a los controles en tu página.'
+                }),
+                PropertyPaneLabel('urlSegment1', { text: '• #nuevo-ticket' }),
+                PropertyPaneLabel('urlSegment2', { text: '• #ver-mis-tickets' }),
+                PropertyPaneLabel('urlSegment3', { text: '• #mis-tickets-por-aprobar' }),
+                PropertyPaneLabel('urlSegment4', { text: '• #mis-tickets-por-atender' })
               ]
             }
           ]
