@@ -1,9 +1,9 @@
 {
   "$schema": "https://developer.microsoft.com/json-schemas/spfx-build/package-solution.schema.json",
   "solution": {
-    "name": "sistematickets-client-side-solution",
+    "name": "Sistema de Tickets",
     "id": "27d655ea-1dea-49b2-b827-2d579520551d",
-    "version": "1.0.0.0",
+    "version": "1.0.1.0",
     "includeClientSideAssets": true,
     "skipFeatureDeployment": true,
     "isDomainIsolated": false,
@@ -16,10 +16,10 @@
     },
     "metadata": {
       "shortDescription": {
-        "default": "sistematickets description"
+        "default": "Sistema de Tickets description"
       },
       "longDescription": {
-        "default": "sistematickets description"
+        "default": "Sistema de Tickets description"
       },
       "screenshotPaths": [],
       "videoUrl": "",
@@ -27,10 +27,10 @@
     },
     "features": [
       {
-        "title": "sistematickets Feature",
-        "description": "The feature that activates elements of the sistematickets solution.",
+        "title": "Sistema de Tickets Feature",
+        "description": "The feature that activates elements of the Sistema de Tickets solution.",
         "id": "b395ad61-69bd-485c-bcc5-162d8d05b685",
-        "version": "1.0.0.0"
+        "version": "1.0.1.0"
       }
     ]
   },

@@ -507,6 +507,21 @@ const NuevoTicket: React.FC<INuevoTicketProps> = ({ isOpen, onDismiss }) => {
                 }}
                 onFocus={() => { if (ticketType) setCategoryMenuOpen(true); }}
                 autoComplete="off"
+                onRenderSuffix={() => categoryInputText ? (
+                  <span
+                    title="Limpiar selección"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      setCategoryInputText('');
+                      setCategoryId(null);
+                      setTemplate(null);
+                      setFormFields([]);
+                      setFormFieldValues({});
+                      setCategoryMenuOpen(true);
+                    }}
+                    style={{ cursor: 'pointer', padding: '0 4px', lineHeight: 1, fontSize: 12, color: '#605e5c' }}
+                  >✕</span>
+                ) : null}
               />
             </div>
             {categoryMenuOpen && categoryOptionsFiltered.length > 0 && categoryInputWrapperRef.current && (

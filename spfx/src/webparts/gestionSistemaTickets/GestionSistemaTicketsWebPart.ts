@@ -136,11 +136,11 @@ export default class GestionSistemaTicketsWebPart extends BaseClientSideWebPart<
                       elem.innerHTML = `
                         <p style="margin: 8px 0 4px;">Usa los siguientes segmentos de URL para mandar a llamar a los controles en tu página.</p>
                         <ul style="margin: 0; padding-left: 18px;">
-                          <li>nueva-plantilla</li>
-                          <li>consulta-plantillas</li>
-                          <li>nueva-categoria</li>
-                          <li>consulta-categorias</li>
-                          <li>todos-los-tickets</li>
+                          <li>#nueva-plantilla</li>
+                          <li>#consulta-plantillas</li>
+                          <li>#nueva-categoria</li>
+                          <li>#consulta-categorias</li>
+                          <li>#todos-los-tickets</li>
                         </ul>`;
                     }
                   } as IPropertyPaneCustomFieldProps

@@ -5,7 +5,8 @@ import {
   type IPropertyPaneConfiguration,
   PropertyPaneTextField,
   PropertyPaneToggle,
-  PropertyPaneLabel
+  PropertyPaneFieldType,
+  IPropertyPaneCustomFieldProps
 } from '@microsoft/sp-property-pane';
 import { BaseClientSideWebPart } from '@microsoft/sp-webpart-base';
 import { IReadonlyTheme } from '@microsoft/sp-component-base';
@@ -127,13 +128,23 @@ export default class GestionTicketsWebPart extends BaseClientSideWebPart<IGestio
                   onText: 'Activo',
                   offText: 'Inactivo'
                 }),
-                PropertyPaneLabel('urlSegmentsInfo', {
-                  text: 'Usa los siguientes segmentos de URL para mandar a llamar a los controles en tu página.'
-                }),
-                PropertyPaneLabel('urlSegment1', { text: '• #nuevo-ticket' }),
-                PropertyPaneLabel('urlSegment2', { text: '• #ver-mis-tickets' }),
-                PropertyPaneLabel('urlSegment3', { text: '• #mis-tickets-por-aprobar' }),
-                PropertyPaneLabel('urlSegment4', { text: '• #mis-tickets-por-atender' })
+                {
+                  type: PropertyPaneFieldType.Custom,
+                  targetProperty: '',
+                  properties: {
+                    key: 'urlSegmentsInfo',
+                    onRender: (elem: HTMLElement) => {
+                      elem.innerHTML = `
+                        <p style="margin: 8px 0 4px;">Usa los siguientes segmentos de URL para mandar a llamar a los controles en tu página.</p>
+                        <ul style="margin: 0; padding-left: 18px;">
+                          <li>#nuevo-ticket</li>
+                          <li>#ver-mis-tickets</li>
+                          <li>#mis-tickets-por-aprobar</li>
+                          <li>#mis-tickets-por-atender</li>
+                        </ul>`;
+                    }
+                  } as IPropertyPaneCustomFieldProps
+                }
               ]
             }
           ]

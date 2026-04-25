@@ -13,7 +13,7 @@
     "group": { "default": "Advanced" },
     "title": { "default": "Gestion de Tickets" },
     "description": { "default": "Gestion de Tickets description" },
-    "officeFabricIconFontName": "Page",
+    "officeFabricIconFontName": "Ticket",
     "properties": {
       "description": "Gestion de Tickets"
     }
