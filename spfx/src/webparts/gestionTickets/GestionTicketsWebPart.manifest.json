@@ -11,11 +11,11 @@
   "preconfiguredEntries": [{
     "groupId": "5c03119e-3074-46fd-976b-c60198311f70",
     "group": { "default": "Advanced" },
-    "title": { "default": "Gestion de Tickets" },
-    "description": { "default": "Gestion de Tickets description" },
+    "title": { "default": "Mis Tickets" },
+    "description": { "default": "Mis Tickets. Registro, consulta, aprobación o atención de tickets" },
     "officeFabricIconFontName": "Ticket",
     "properties": {
-      "description": "Gestion de Tickets"
+      "description": "Mis Tickets"
     }
   }]
 }
