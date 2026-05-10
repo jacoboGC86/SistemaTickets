@@ -22,6 +22,7 @@ import {
 } from '@fluentui/react';
 import ListSvc from '../../../services/ListSvc';
 import UserSvc from '../../../services/UserSvc';
+import EvaluacionRiesgo, { IEvaluacionRiesgoValues } from './EvaluacionRiesgo';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -121,6 +122,8 @@ const NuevoTicket: React.FC<INuevoTicketProps> = ({ isOpen, onDismiss }) => {
   const [selectedFiles, setSelectedFiles] = React.useState<File[]>([]);
   const [categoryInputText, setCategoryInputText] = React.useState('');
   const [categoryMenuOpen, setCategoryMenuOpen] = React.useState(false);
+  const [evaluacionRiesgo, setEvaluacionRiesgo] = React.useState<IEvaluacionRiesgoValues | null>(null);
+  const [evaluacionRiesgoKey, setEvaluacionRiesgoKey] = React.useState(0);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const categoryInputWrapperRef = React.useRef<HTMLDivElement>(null);
 
@@ -156,6 +159,8 @@ const NuevoTicket: React.FC<INuevoTicketProps> = ({ isOpen, onDismiss }) => {
     setFormFieldValues({});
     setErrorMessage('');
     setSuccessMessage('');
+    setEvaluacionRiesgo(null);
+    setEvaluacionRiesgoKey(prev => prev + 1);
     dataLoaded.current = false;
   };
 
@@ -359,9 +364,10 @@ const NuevoTicket: React.FC<INuevoTicketProps> = ({ isOpen, onDismiss }) => {
           : (t.processManagerAguascalientes?.id ?? t.processManager.id);
 
       // Get entity type names
-      const [ticketsEntityType, approvalsEntityType] = await Promise.all([
+      const [ticketsEntityType, approvalsEntityType, evaluacionesEntityType] = await Promise.all([
         ListSvc.getListItemEntityTypeFullName('Tickets'),
         ListSvc.getListItemEntityTypeFullName('Aprobaciones'),
+        ListSvc.getListItemEntityTypeFullName('EvaluacionesRiesgo'),
       ]);
 
       // Build and create ticket item
@@ -380,7 +386,7 @@ const NuevoTicket: React.FC<INuevoTicketProps> = ({ isOpen, onDismiss }) => {
         'ManagerId': selectedDept.PersonaId,
         'Planta': plant,
         'ProcessManagerId': processManagerId,
-        'ANombreDeId': aNombreDeId,
+        'ANombreDeId': aNombreDeId
       };
 
       const newItem = await ListSvc.postListItem('Tickets', JSON.stringify(itemBody));
@@ -423,7 +429,45 @@ const NuevoTicket: React.FC<INuevoTicketProps> = ({ isOpen, onDismiss }) => {
           'ResponsableId': processManagerId,
         };
       }
-      await ListSvc.postListItem('Aprobaciones', JSON.stringify(approvalBody));
+      let aprobacion:any = await ListSvc.postListItem('Aprobaciones', JSON.stringify(approvalBody));
+
+      console.log(aprobacion);
+
+      // Create EvaluacionesRiesgo record for Change tickets
+      if (ticketType === 'Change' && evaluacionRiesgo) {
+        let fechaPropuestaISO: string | null = null;
+        if (evaluacionRiesgo.fechaPropuesta) {
+          const base = new Date(evaluacionRiesgo.fechaPropuesta);
+          if (evaluacionRiesgo.horaPropuesta) {
+            base.setHours(
+              evaluacionRiesgo.horaPropuesta.getHours(),
+              evaluacionRiesgo.horaPropuesta.getMinutes(),
+              0,
+              0
+            );
+          }
+          fechaPropuestaISO = base.toISOString();
+        }
+        const evaluacionBody: Record<string, unknown> = {
+          '__metadata': { 'type': evaluacionesEntityType },
+          'Title': `Evaluación - Ticket ${idSol}`,
+          'TicketId': idSol,
+          'TipoCambio': evaluacionRiesgo.tipoCambio,
+          'SistemasInvolucrados': evaluacionRiesgo.sistemasInvolucrados,
+          'FechaPropuesta': fechaPropuestaISO,
+          'EvaluacionRiesgos': evaluacionRiesgo.evaluacionRiesgos,
+          'InterrupcionServicio': evaluacionRiesgo.interrupcionServicio,
+          'DuracionEstimada': evaluacionRiesgo.duracionEstimada ? Number(evaluacionRiesgo.duracionEstimada) : null,
+          'UsuariosAfectados': evaluacionRiesgo.usuariosAfectados ? Number(evaluacionRiesgo.usuariosAfectados) : null,
+          'PasosImplementacion': evaluacionRiesgo.pasosImplementacion,
+          'PuedoRevertir': evaluacionRiesgo.puedeRevertir,
+          'ProcedimientoRollback': evaluacionRiesgo.procedimientoRollback,
+          'CriteriosExito': evaluacionRiesgo.criteriosExito,
+          'MotivoCambio': evaluacionRiesgo.motivoCambio,
+          'ProcesosCriticosImpactados': evaluacionRiesgo.procesosCriticosImpactados,
+        };
+        await ListSvc.postListItem('EvaluacionesRiesgo', JSON.stringify(evaluacionBody));
+      }
 
       setSuccessMessage('Solicitud realizada correctamente.');
       setTimeout(() => {
@@ -704,6 +748,7 @@ const NuevoTicket: React.FC<INuevoTicketProps> = ({ isOpen, onDismiss }) => {
             </Stack>
           )}
 
+
           {/* File attachments */}
           <Stack tokens={{ childrenGap: 8 }}>
             <Label>Archivos adjuntos (máximo 2)</Label>
@@ -734,6 +779,14 @@ const NuevoTicket: React.FC<INuevoTicketProps> = ({ isOpen, onDismiss }) => {
               </Stack>
             )}
           </Stack>
+
+          {/* Evaluación de Riesgo */}
+          {ticketType === 'Change' && (
+            <EvaluacionRiesgo
+              key={evaluacionRiesgoKey}
+              onChange={setEvaluacionRiesgo}
+            />
+          )}
 
           <Stack horizontal horizontalAlign="end" tokens={{ childrenGap: 12 }}>
             <PrimaryButton

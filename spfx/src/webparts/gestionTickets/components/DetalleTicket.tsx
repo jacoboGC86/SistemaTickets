@@ -22,6 +22,7 @@ import {
 } from '@fluentui/react';
 import ListSvc from '../../../services/ListSvc';
 import UserSvc from '../../../services/UserSvc';
+import EvaluacionRiesgo, { IEvaluacionRiesgoValues } from './EvaluacionRiesgo';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -189,6 +190,7 @@ const DetalleTicket: React.FC<IDetalleTicketProps> = ({ isOpen, onDismiss, ticke
   const [reassignSuggestions, setReassignSuggestions] = React.useState<{ id: number; loginName: string; title: string }[]>([]);
   const [selectedReassign, setSelectedReassign] = React.useState<{ id: number; loginName: string; title: string } | null>(null);
   const commentFileRef = React.useRef<HTMLInputElement>(null);
+  const [evaluacionRiesgo, setEvaluacionRiesgo] = React.useState<IEvaluacionRiesgoValues | null>(null);
 
   // ── Lifecycle ────────────────────────────────────────────────────────────
 
@@ -224,6 +226,7 @@ const DetalleTicket: React.FC<IDetalleTicketProps> = ({ isOpen, onDismiss, ticke
     setReassignSuggestions([]);
     setSelectedReassign(null);
     setResolvedSteps([]);
+    setEvaluacionRiesgo(null);
     setErrorMessage('');
     setSuccessMessage('');
     dataLoaded.current = false;
@@ -365,6 +368,39 @@ const DetalleTicket: React.FC<IDetalleTicketProps> = ({ isOpen, onDismiss, ticke
         })));
       } catch {
         // Comments list may not exist
+      }
+
+      // Load EvaluacionesRiesgo for Change tickets
+      if (td.tipoTicket === 'Change') {
+        try {
+          const evalItems: any[] = await ListSvc.getItems(
+            'EvaluacionesRiesgo',
+            undefined,
+            `$select=TipoCambio,SistemasInvolucrados,FechaPropuesta,MotivoCambio,EvaluacionRiesgos,InterrupcionServicio,DuracionEstimada,UsuariosAfectados,ProcesosCriticosImpactados,PasosImplementacion,PuedoRevertir,ProcedimientoRollback,CriteriosExito&$filter=TicketId eq ${id}&$top=1`
+          );
+          const ev = evalItems?.[0];
+          if (ev) {
+            const fechaDate = ev.FechaPropuesta ? new Date(ev.FechaPropuesta) : null;
+            setEvaluacionRiesgo({
+              tipoCambio: ev.TipoCambio ?? '',
+              sistemasInvolucrados: ev.SistemasInvolucrados ?? '',
+              fechaPropuesta: fechaDate,
+              horaPropuesta: fechaDate,
+              motivoCambio: ev.MotivoCambio ?? '',
+              evaluacionRiesgos: ev.EvaluacionRiesgos ?? '',
+              interrupcionServicio: ev.InterrupcionServicio ?? 'No',
+              duracionEstimada: ev.DuracionEstimada != null ? String(ev.DuracionEstimada) : '',
+              usuariosAfectados: ev.UsuariosAfectados != null ? String(ev.UsuariosAfectados) : '',
+              procesosCriticosImpactados: ev.ProcesosCriticosImpactados ?? '',
+              pasosImplementacion: ev.PasosImplementacion ?? '',
+              puedeRevertir: ev.PuedoRevertir ?? 'Sí',
+              procedimientoRollback: ev.ProcedimientoRollback ?? '',
+              criteriosExito: ev.CriteriosExito ?? '',
+            });
+          }
+        } catch {
+          // EvaluacionesRiesgo may not exist for this ticket
+        }
       }
 
       dataLoaded.current = true;
@@ -1133,6 +1169,11 @@ const DetalleTicket: React.FC<IDetalleTicketProps> = ({ isOpen, onDismiss, ticke
                 />
               )}
             </Stack>
+          )}
+
+          {/* Evaluación de Riesgo (Change tickets) */}
+          {ticket.tipoTicket === 'Change' && evaluacionRiesgo && (
+            <EvaluacionRiesgo readOnly initialValues={evaluacionRiesgo} />
           )}
 
           <Separator />
