@@ -274,6 +274,7 @@ const EvaluacionRiesgo: React.FC<IEvaluacionRiesgoProps> = ({ onChange, initialV
       <Label styles={{ root: { fontWeight: 600, fontSize: 14, borderTop: '1px solid #edebe9', paddingTop: 16 } }}>
         7. Validación y pruebas
       </Label>
+      <p>Adjunte las pruebas realizadas y los resultados obtenidos.</p>
       <TextField
         label="Criterios de éxito"
         value={values.criteriosExito}

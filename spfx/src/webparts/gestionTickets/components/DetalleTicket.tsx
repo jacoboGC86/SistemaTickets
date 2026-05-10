@@ -339,14 +339,11 @@ const DetalleTicket: React.FC<IDetalleTicketProps> = ({ isOpen, onDismiss, ticke
 
       // Load adjuntos from Expediente folder
       try {
-        const relativeURL = ListSvc.getRelativeSiteURL();
-        const filesResp = await ListSvc.getItems(
-          'Expediente',
-          undefined,
-          `$select=FileLeafRef,ServerRelativeUrl&$filter=TicketId eq ${id}`
+        const filesResp = await ListSvc.getAllFiles(
+          'Expediente/' + id
         ).catch(() => null);
         if (filesResp) {
-          setAdjuntos((filesResp || []).map((f: any) => ({ name: f.FileLeafRef, url: f.ServerRelativeUrl })));
+          setAdjuntos((filesResp.value || []).map((f: any) => ({ name: f.Name, url: f.ServerRelativeUrl })));
         }
       } catch {
         // Adjuntos may not be accessible, skip silently

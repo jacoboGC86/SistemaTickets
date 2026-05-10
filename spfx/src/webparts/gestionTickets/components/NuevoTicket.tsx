@@ -748,6 +748,13 @@ const NuevoTicket: React.FC<INuevoTicketProps> = ({ isOpen, onDismiss }) => {
             </Stack>
           )}
 
+          {/* Evaluación de Riesgo */}
+          {ticketType === 'Change' && (
+            <EvaluacionRiesgo
+              key={evaluacionRiesgoKey}
+              onChange={setEvaluacionRiesgo}
+            />
+          )}
 
           {/* File attachments */}
           <Stack tokens={{ childrenGap: 8 }}>
@@ -779,14 +786,6 @@ const NuevoTicket: React.FC<INuevoTicketProps> = ({ isOpen, onDismiss }) => {
               </Stack>
             )}
           </Stack>
-
-          {/* Evaluación de Riesgo */}
-          {ticketType === 'Change' && (
-            <EvaluacionRiesgo
-              key={evaluacionRiesgoKey}
-              onChange={setEvaluacionRiesgo}
-            />
-          )}
 
           <Stack horizontal horizontalAlign="end" tokens={{ childrenGap: 12 }}>
             <PrimaryButton
