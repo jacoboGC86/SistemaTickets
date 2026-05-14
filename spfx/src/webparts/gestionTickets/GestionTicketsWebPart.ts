@@ -20,6 +20,7 @@ import UserSvc from '../../services/UserSvc';
 export interface IGestionTicketsWebPartProps {
   description: string;
   usarMenuPersonalizado: boolean;
+  idPersona: number;
 }
 
 export default class GestionTicketsWebPart extends BaseClientSideWebPart<IGestionTicketsWebPartProps> {
@@ -37,7 +38,8 @@ export default class GestionTicketsWebPart extends BaseClientSideWebPart<IGestio
         hasTeamsContext: !!this.context.sdks.microsoftTeams,
         userDisplayName: this.context.pageContext.user.displayName,
         isEditMode: this.displayMode === DisplayMode.Edit,
-        usarMenuPersonalizado: this.properties.usarMenuPersonalizado
+        usarMenuPersonalizado: this.properties.usarMenuPersonalizado,
+        idPersona: this.properties.idPersona
       }
     );
 
@@ -51,6 +53,7 @@ export default class GestionTicketsWebPart extends BaseClientSideWebPart<IGestio
       const relativeURL = this.context.pageContext.web.serverRelativeUrl;
       ListSvc.Init(this.context.spHttpClient, siteUrl, relativeURL);
       UserSvc.Init(this.context.spHttpClient, siteUrl, relativeURL, null);
+      UserSvc.SetIdPersona(this.properties.idPersona ?? 0);
     });
   }
 
@@ -127,6 +130,15 @@ export default class GestionTicketsWebPart extends BaseClientSideWebPart<IGestio
                   label: 'Usar menú personalizado',
                   onText: 'Activo',
                   offText: 'Inactivo'
+                }),
+                PropertyPaneTextField('idPersona', {
+                  label: 'Id Persona',
+                  onGetErrorMessage: (value: string) => {
+                    if (!value) return '';
+                    return Number.isInteger(Number(value)) && Number(value) > 0
+                      ? ''
+                      : 'Ingresa un número entero positivo.';
+                  }
                 }),
                 {
                   type: PropertyPaneFieldType.Custom,

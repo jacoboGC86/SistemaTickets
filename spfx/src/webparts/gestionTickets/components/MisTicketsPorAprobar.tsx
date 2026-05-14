@@ -140,12 +140,43 @@ export default class MisTicketsPorAprobar extends React.Component<IMisTicketsPor
       const currentUser = await UserSvc.GetCurrentUser();
       const userId: number = currentUser.Id;
 
-      // 1. Find pending approvals assigned to the current user
-      const aprobacionesRaw:any[] = await ListSvc.getItems(
+      // Fetch Grupos where the current user is part of Integrantes
+      const gruposRaw: any[] = await ListSvc.getItems(
+        'Grupos',
+        undefined,
+        `$select=Id,Title,Integrantes/Id&$expand=Integrantes&$filter=Integrantes/Id eq ${userId}&$top=500`
+      );
+      const grupos: { id: number; title: string }[] = (gruposRaw ?? []).map((g: any) => ({
+        id: g.Id,
+        title: g.Title ?? '',
+      }));
+
+      // 1. Find pending approvals assigned to the current user AND pending group approvals
+      const aprobacionesPersonalPromise = ListSvc.getItems(
         'Aprobaciones',
         undefined,
         `$select=Id,Title,TicketId&$filter=ResponsableId eq ${userId} and Resultado eq 'Pendiente' and Title ne 'Assigned'&$top=200`
       );
+
+      const aprobacionesGrupoPromise: Promise<any[]> = grupos.length > 0
+        ? ListSvc.getItems(
+            'Aprobaciones',
+            undefined,
+            `$select=Id,Title,TicketId&$filter=(${grupos.map(g => `GrupoId eq ${g.id}`).join(' or ')}) and Resultado eq 'Pendiente' and Title ne 'Assigned'&$top=200`
+          )
+        : Promise.resolve([]);
+
+      const [aprobacionesPersonal, aprobacionesGrupo] = await Promise.all([
+        aprobacionesPersonalPromise,
+        aprobacionesGrupoPromise,
+      ]);
+
+      // Merge and deduplicate by Id
+      const aprobacionesMap = new Map<number, any>();
+      [...(aprobacionesPersonal ?? []), ...(aprobacionesGrupo ?? [])].forEach((a: any) => {
+        if (!aprobacionesMap.has(a.Id)) aprobacionesMap.set(a.Id, a);
+      });
+      const aprobacionesRaw: any[] = Array.from(aprobacionesMap.values());
 
       if (!aprobacionesRaw || aprobacionesRaw.length === 0) {
         this.setState({ tickets: [], loading: false });

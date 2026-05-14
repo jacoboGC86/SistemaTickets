@@ -53,6 +53,7 @@ interface IAprobacionRow {
   responsable: string | null;
   responsableEmail: string | null;
   modified: string | null;
+  grupoId: number | null;
 }
 
 interface IResolvedStep {
@@ -191,6 +192,7 @@ const DetalleTicket: React.FC<IDetalleTicketProps> = ({ isOpen, onDismiss, ticke
   const [selectedReassign, setSelectedReassign] = React.useState<{ id: number; loginName: string; title: string } | null>(null);
   const commentFileRef = React.useRef<HTMLInputElement>(null);
   const [evaluacionRiesgo, setEvaluacionRiesgo] = React.useState<IEvaluacionRiesgoValues | null>(null);
+  const [userGroups, setUserGroups] = React.useState<{ id: number; title: string }[]>([]);
 
   // ── Lifecycle ────────────────────────────────────────────────────────────
 
@@ -227,6 +229,7 @@ const DetalleTicket: React.FC<IDetalleTicketProps> = ({ isOpen, onDismiss, ticke
     setSelectedReassign(null);
     setResolvedSteps([]);
     setEvaluacionRiesgo(null);
+    setUserGroups([]);
     setErrorMessage('');
     setSuccessMessage('');
     dataLoaded.current = false;
@@ -246,9 +249,17 @@ const DetalleTicket: React.FC<IDetalleTicketProps> = ({ isOpen, onDismiss, ticke
       if (!ticketItem) throw new Error('Ticket no encontrado.');
 
       const currentUser = await UserSvc.GetCurrentUser();
-
       const uid: number = currentUser?.Id ?? 0;
       setCurrentUserId(uid);
+
+      // Load Grupos where the current user is an Integrante
+      const gruposUsuario: any[] = await ListSvc.getItems(
+        'Grupos',
+        undefined,
+        `$select=Id,Title,Integrantes/Id&$expand=Integrantes&$filter=Integrantes/Id eq ${uid}&$top=500`
+      ).catch(() => []);
+      const mappedGroups = (gruposUsuario || []).map((g: any) => ({ id: g.Id, title: g.Title }));
+      setUserGroups(mappedGroups);
 
       const tmplRaw: string | null = ticketItem?.TemplateConfiguracion ?? null;
       const tmpl: ITemplate | null = tmplRaw ? JSON.parse(tmplRaw) : null;
@@ -312,7 +323,7 @@ const DetalleTicket: React.FC<IDetalleTicketProps> = ({ isOpen, onDismiss, ticke
       const aprobItems: any[] = await ListSvc.getItems(
         'Aprobaciones',
         undefined,
-        `$select=Id,Title,Resultado,Responsable/Id,Responsable/Title,Responsable/EMail,Modified&$expand=Responsable&$filter=TicketId eq ${id}&$orderby=Id asc`
+        `$select=Id,Title,Resultado,GrupoId,Responsable/Id,Responsable/Title,Responsable/EMail,Modified&$expand=Responsable&$filter=TicketId eq ${id}&$orderby=Id asc`
       );
       const rows: IAprobacionRow[] = (aprobItems || []).map((a: any) => ({
         id: a.Id,
@@ -321,13 +332,17 @@ const DetalleTicket: React.FC<IDetalleTicketProps> = ({ isOpen, onDismiss, ticke
         responsable: a.Responsable?.Title ?? null,
         responsableEmail: a.Responsable?.EMail ?? null,
         modified: a.Modified ?? null,
+        grupoId: a.GrupoId ?? null,
       }));
       setAprobaciones(rows);
 
       // Determine if current user is an approver
       const pendingRow = rows.find(r => r.resultado === 'Pendiente');
       if (pendingRow && td.status !== 'Assigned' && td.status !== 'Cerrado') {
-        setIamApproval(isApproverStep || isPM);
+        const isGroupApprover = pendingRow.grupoId != null
+          ? mappedGroups.some(g => g.id === pendingRow.grupoId)
+          : false;
+        setIamApproval(isApproverStep || isGroupApprover || isPM);
       } else {
         setIamApproval(isPM);
       }

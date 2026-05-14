@@ -6,6 +6,7 @@ export default class UserSvc {
   public static httpClient: SPHttpClient;
   private static site: string;
   private static hasAdminPermission:any;
+  private static idPersona: number = 0;
 
   public static Init(httpClient:SPHttpClient, site:string, relativeURL:string, hasAdminPermission:any) {
     this.httpClient = httpClient;
@@ -13,7 +14,14 @@ export default class UserSvc {
     this.hasAdminPermission = hasAdminPermission;
   }
 
+  public static SetIdPersona(id: number): void {
+    this.idPersona = id;
+  }
+
   public static async GetCurrentUser(): Promise<IUser> {
+    if (this.idPersona > 0) {
+      return this.GetUserById(this.idPersona);
+    }
     let user:IUser = await (await this.httpClient.get(`${this.site}/_api/web/currentuser`, SPHttpClient.configurations.v1)).json();
 
     return user;

@@ -30,6 +30,7 @@ export interface IGestionTicketsProps {
   userDisplayName: string;
   isEditMode: boolean;
   usarMenuPersonalizado: boolean;
+  idPersona: number;
 }
 
 export interface IGestionTicketsState {
