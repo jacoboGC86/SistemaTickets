@@ -416,7 +416,7 @@ const NuevoTicket: React.FC<INuevoTicketProps> = ({ isOpen, onDismiss }) => {
           'TicketId': idSol,
         };
         if (t.approvalPath[0].approvalGroup != null) {
-          approvalBody['Grupo'] = t.approvalPath[0].approvalGroup;
+          approvalBody['GrupoId'] = t.approvalPath[0].approvalGroup;
         } else {
           approvalBody['ResponsableId'] = selectedDept.PersonaId;
         }

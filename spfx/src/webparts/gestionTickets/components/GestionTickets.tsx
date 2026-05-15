@@ -31,6 +31,7 @@ export interface IGestionTicketsProps {
   isEditMode: boolean;
   usarMenuPersonalizado: boolean;
   idPersona: number;
+  //suplantarId: number;
 }
 
 export interface IGestionTicketsState {

@@ -371,13 +371,21 @@ const DetalleTicket: React.FC<IDetalleTicketProps> = ({ isOpen, onDismiss, ticke
           undefined,
           `$select=Id,Title,Author/Title,Created,Comentario&$expand=Author&$filter=TicketId eq ${id}&$orderby=Id asc`
         );
-        setComments((commentItems || []).map((c: any) => ({
-          id: c.Id,
-          author: c.Author?.Title ?? '',
-          text: c.Comentario ?? c.Title ?? '',
-          date: c.Created ? new Date(c.Created).toLocaleString('es-MX') : '',
-          adjuntos: [],
-        })));
+        const mappedComments = await Promise.all((commentItems || []).map(async (c: any) => {
+          let adjuntos: { name: string; url: string }[] = [];
+          try {
+            const attachments = await ListSvc.getListItemAttachments('Comentarios', c.Id);
+            adjuntos = (attachments || []).map((a: any) => ({ name: a.FileName, url: a.ServerRelativeUrl }));
+          } catch { /* no attachments */ }
+          return {
+            id: c.Id,
+            author: c.Author?.Title ?? '',
+            text: c.Comentario ?? c.Title ?? '',
+            date: c.Created ? new Date(c.Created).toLocaleString('es-MX') : '',
+            adjuntos,
+          };
+        }));
+        setComments(mappedComments);
       } catch {
         // Comments list may not exist
       }
@@ -1223,6 +1231,15 @@ const DetalleTicket: React.FC<IDetalleTicketProps> = ({ isOpen, onDismiss, ticke
                     <strong>{c.author}</strong>
                     <span style={{ color: '#6c757d', marginLeft: 8, fontSize: 12 }}>{c.date}</span>
                     <p style={{ margin: '4px 0 0' }}>{c.text}</p>
+                    {c.adjuntos.length > 0 && (
+                      <ul style={{ listStyle: 'none', padding: 0, margin: '6px 0 0' }}>
+                        {c.adjuntos.map((a, ai) => (
+                          <li key={ai} style={{ fontSize: 12 }}>
+                            <a href={a.url} target="_blank" rel="noopener noreferrer">📎 {a.name}</a>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
                 ))}
               </Stack>

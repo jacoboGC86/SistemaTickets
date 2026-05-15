@@ -246,6 +246,11 @@ export default class ListSvc {
     return await (await this.httpClient.post(`${this.site}/_api/web/lists/GetByTitle('${ list }')/Items`, SPHttpClient.configurations.v1, headers)).json();
   }
 
+  public static async getListItemAttachments(list: string, itemId: number): Promise<{ FileName: string; ServerRelativeUrl: string }[]> {
+    const response = await (await this.httpClient.get(`${this.site}/_api/web/lists/GetByTitle('${list}')/Items(${itemId})/AttachmentFiles`, SPHttpClient.configurations.v1)).json();
+    return response?.value ?? [];
+  }
+
   public static async postListItemAttachment(list:string, itemId:number, fileName:string, arrayBuffer:ArrayBuffer):Promise<any> {
     const safeFileName = encodeURIComponent(fileName).replace(/'/g, '%27');
     const headers:ISPHttpClientOptions = {

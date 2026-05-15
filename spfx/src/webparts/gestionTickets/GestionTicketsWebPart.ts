@@ -21,6 +21,89 @@ export interface IGestionTicketsWebPartProps {
   description: string;
   usarMenuPersonalizado: boolean;
   idPersona: number;
+  suplantarId: number;
+  suplantarName: string;
+}
+
+// ── Property pane PeoplePicker (React.createElement – no JSX in .ts) ────────────
+
+interface ISuplantarPickerProps {
+  initialName: string;
+  onSelect: (id: number, name: string) => void;
+}
+
+interface ISuplantarPickerState {
+  query: string;
+  suggestions: { loginName: string; title: string }[];
+}
+
+class SuplantarPicker extends React.Component<ISuplantarPickerProps, ISuplantarPickerState> {
+  constructor(props: ISuplantarPickerProps) {
+    super(props);
+    this.state = { query: props.initialName || '', suggestions: [] };
+  }
+
+  private _search = async (val: string): Promise<void> => {
+    this.setState({ query: val });
+    if (val.length < 3) { this.setState({ suggestions: [] }); return; }
+    try {
+      const results = await UserSvc.SearchUsers(val);
+      this.setState({
+        suggestions: (results || []).slice(0, 8).map((u: any) => ({
+          loginName: u.Key ?? '',
+          title: u.DisplayText ?? u.Description ?? '',
+        })),
+      });
+    } catch { this.setState({ suggestions: [] }); }
+  };
+
+  private _select = async (s: { loginName: string; title: string }): Promise<void> => {
+    this.setState({ query: s.title, suggestions: [] });
+    try {
+      const ensured = await UserSvc.EnsureUser(s.loginName);
+      const id: number = ensured?.Id ?? (ensured as any)?.d?.Id ?? 0;
+      this.props.onSelect(id, s.title);
+    } catch { /* ignore */ }
+  };
+
+  private _clear = (): void => {
+    this.setState({ query: '', suggestions: [] });
+    this.props.onSelect(0, '');
+  };
+
+  public render(): React.ReactElement {
+    const { query, suggestions } = this.state;
+    return React.createElement('div', { style: { padding: '8px 0' } },
+      React.createElement('label', { style: { display: 'block', marginBottom: 4, fontSize: 14, fontWeight: 600 } }, 'Suplantar usuario'),
+      React.createElement('div', { style: { display: 'flex', gap: 4 } },
+        React.createElement('input', {
+          type: 'text',
+          value: query,
+          onChange: (e: React.ChangeEvent<HTMLInputElement>) => this._search(e.target.value),
+          placeholder: 'Buscar persona...',
+          style: { flex: 1, padding: '6px 8px', fontSize: 14, boxSizing: 'border-box', border: '1px solid #a19f9d', borderRadius: 2 },
+        }),
+        query ? React.createElement('button', {
+          onClick: this._clear,
+          title: 'Limpiar',
+          style: { padding: '0 8px', cursor: 'pointer', border: '1px solid #a19f9d', borderRadius: 2, background: 'white', fontSize: 14 },
+        }, '✕') : null
+      ),
+      suggestions.length > 0
+        ? React.createElement('ul', {
+            style: { listStyle: 'none', margin: '2px 0 0', padding: 0, border: '1px solid #ddd', borderRadius: 2, maxHeight: 160, overflowY: 'auto', background: 'white', boxShadow: '0 2px 6px rgba(0,0,0,0.15)', zIndex: 9999, position: 'relative' }
+          },
+          ...suggestions.map(s =>
+            React.createElement('li', {
+              key: s.loginName,
+              onMouseDown: () => this._select(s),
+              style: { padding: '6px 10px', cursor: 'pointer', fontSize: 13 },
+            }, s.title)
+          )
+        )
+        : null
+    );
+  }
 }
 
 export default class GestionTicketsWebPart extends BaseClientSideWebPart<IGestionTicketsWebPartProps> {
@@ -40,6 +123,7 @@ export default class GestionTicketsWebPart extends BaseClientSideWebPart<IGestio
         isEditMode: this.displayMode === DisplayMode.Edit,
         usarMenuPersonalizado: this.properties.usarMenuPersonalizado,
         idPersona: this.properties.idPersona
+        //suplantarId: this.properties.suplantarId ?? 0
       }
     );
 
@@ -132,14 +216,39 @@ export default class GestionTicketsWebPart extends BaseClientSideWebPart<IGestio
                   offText: 'Inactivo'
                 }),
                 PropertyPaneTextField('idPersona', {
-                  label: 'Id Persona',
+                  label: 'Id Persona Suplantar',
                   onGetErrorMessage: (value: string) => {
                     if (!value) return '';
                     return Number.isInteger(Number(value)) && Number(value) > 0
                       ? ''
-                      : 'Ingresa un número entero positivo.';
+                      : 'Ingresa el ID de la Persona en SharePoint (int).';
                   }
                 }),
+                /*
+                {
+                  type: PropertyPaneFieldType.Custom,
+                  targetProperty: 'suplantarId',
+                  properties: {
+                    key: 'suplantarPicker',
+                    onRender: (elem: HTMLElement) => {
+                      ReactDom.render(
+                        React.createElement(SuplantarPicker, {
+                          initialName: this.properties.suplantarName || '',
+                          onSelect: (id: number, name: string) => {
+                            this.properties.suplantarId = id;
+                            this.properties.suplantarName = name;
+                            this.render();
+                          },
+                        }),
+                        elem
+                      );
+                    },
+                    onDispose: (elem: HTMLElement) => {
+                      ReactDom.unmountComponentAtNode(elem);
+                    },
+                  } as IPropertyPaneCustomFieldProps,
+                },
+                */
                 {
                   type: PropertyPaneFieldType.Custom,
                   targetProperty: '',
