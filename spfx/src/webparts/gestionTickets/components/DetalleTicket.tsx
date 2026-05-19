@@ -301,12 +301,13 @@ const DetalleTicket: React.FC<IDetalleTicketProps> = ({ isOpen, onDismiss, ticke
       setIsProcessManager(isPM);
 
       // Load entity type names for write operations
-      const [ticketsType, aprobacionesType, comentariosType] = await Promise.all([
+      const [ticketsType, aprobacionesType, comentariosType, knowledgeBaseType] = await Promise.all([
         ListSvc.getListItemEntityTypeFullName('Tickets'),
         ListSvc.getListItemEntityTypeFullName('Aprobaciones'),
         ListSvc.getListItemEntityTypeFullName('Comentarios').catch(() => 'SP.Data.ComentariosListItem'),
+        ListSvc.getListItemEntityTypeFullName('Knowledge Base').catch(() => 'SP.Data.Knowledge_x0020_BaseListItem'),
       ]);
-      setEntityTypes({ tickets: ticketsType, aprobaciones: aprobacionesType, comentarios: comentariosType });
+      setEntityTypes({ tickets: ticketsType, aprobaciones: aprobacionesType, comentarios: comentariosType, knowledgeBase: knowledgeBaseType });
 
       // Load categorias for recategorize dropdown
       const cats: any[] = await ListSvc.getItems(
@@ -432,7 +433,7 @@ const DetalleTicket: React.FC<IDetalleTicketProps> = ({ isOpen, onDismiss, ticke
     }
   };
 
-  const [entityTypes, setEntityTypes] = React.useState<{ tickets: string; aprobaciones: string; comentarios: string }>({ tickets: '', aprobaciones: '', comentarios: '' });
+  const [entityTypes, setEntityTypes] = React.useState<{ tickets: string; aprobaciones: string; comentarios: string; knowledgeBase: string }>({ tickets: '', aprobaciones: '', comentarios: '', knowledgeBase: '' });
 
   // ── Resolved approval steps ───────────────────────────────────────────────
   const [resolvedSteps, setResolvedSteps] = React.useState<IResolvedStep[]>([]);
@@ -511,6 +512,53 @@ const DetalleTicket: React.FC<IDetalleTicketProps> = ({ isOpen, onDismiss, ticke
   };
 
   // ── Actions ───────────────────────────────────────────────────────────────
+
+  const handlePublishComment = async (): Promise<void> => {
+    if (!ticket) return;
+    if (!comentario.trim() && !selectedCommentFile) {
+      setErrorMessage('Escribe un comentario o selecciona un archivo para publicar.');
+      return;
+    }
+
+    setErrorMessage('');
+    setIsSubmitting(true);
+    try {
+      const newComment = await ListSvc.postListItem(
+        'Comentarios',
+        JSON.stringify({
+          '__metadata': { type: entityTypes.comentarios },
+          Title: ticket.status,
+          Comentario: comentario,
+          TicketId: ticket.id,
+          ResponsableId: currentUserId,
+        })
+      );
+
+      if (selectedCommentFile) {
+        const comentarioId: number = newComment?.d?.Id ?? newComment?.Id;
+        if (comentarioId) {
+          const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target!.result as ArrayBuffer);
+            reader.onerror = (e) => reject(e);
+            reader.readAsArrayBuffer(selectedCommentFile);
+          });
+          await ListSvc.postListItemAttachment('Comentarios', comentarioId, selectedCommentFile.name, arrayBuffer);
+        }
+      }
+
+      setSuccessMessage('Comentario publicado correctamente.');
+      setComentario('');
+      setSelectedCommentFile(null);
+      dataLoaded.current = false;
+      await loadAll(ticket.id);
+    } catch (e) {
+      console.error(e);
+      setErrorMessage('Error al publicar el comentario.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleApprove = async (): Promise<void> => {
     if (!ticket) return;
@@ -638,13 +686,53 @@ const DetalleTicket: React.FC<IDetalleTicketProps> = ({ isOpen, onDismiss, ticke
     setErrorMessage('');
     setIsSubmitting(true);
     try {
+      let selectedFileBuffer: ArrayBuffer | null = null;
+      if (selectedCommentFile) {
+        selectedFileBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (e) => resolve(e.target!.result as ArrayBuffer);
+          reader.onerror = (e) => reject(e);
+          reader.readAsArrayBuffer(selectedCommentFile);
+        });
+      }
+
       const updatePayload: Record<string, unknown> = { '__metadata': { type: entityTypes.tickets }, Status: 'Cerrado' };
       if (registrarKB === 'Sí' && solucionDetallada.trim()) {
         updatePayload.SolucionDetallada = solucionDetallada;
       }
       await ListSvc.putListItem('Tickets', ticket.id, JSON.stringify(updatePayload));
-      if (comentario.trim()) {
-        await ListSvc.postListItem('Comentarios', JSON.stringify({ '__metadata': { type: entityTypes.comentarios }, Title: comentario, TicketId: ticket.id }));
+      if (registrarKB === 'Sí') {
+        const solucionParaKB = (solucionDetallada.trim() || ticket.solucionDetallada || '').trim();
+        const kbItem = await ListSvc.postListItem(
+          'Knowledge Base',
+          JSON.stringify({
+            '__metadata': { type: entityTypes.knowledgeBase },
+            TicketOrigenId: ticket.id,
+            Title: ticket.title,
+            Categoria: ticket.categoriaTitle,
+            SolucionDetallada: solucionParaKB,
+            DescripcionDetallada: ticket.descripcion,
+            Departamento: ticket.departamento,
+          })
+        );
+        if (selectedCommentFile && selectedFileBuffer) {
+          const kbItemId: number = kbItem?.d?.Id ?? kbItem?.Id;
+          if (kbItemId) {
+            await ListSvc.postListItemAttachment('Knowledge Base', kbItemId, selectedCommentFile.name, selectedFileBuffer);
+          }
+        }
+      }
+      if (comentario.trim() || selectedCommentFile) {
+        const closeComment = await ListSvc.postListItem(
+          'Comentarios',
+          JSON.stringify({ '__metadata': { type: entityTypes.comentarios }, Title: comentario || 'Cierre de ticket', TicketId: ticket.id, Comentario: comentario })
+        );
+        if (selectedCommentFile && selectedFileBuffer) {
+          const closeCommentId: number = closeComment?.d?.Id ?? closeComment?.Id;
+          if (closeCommentId) {
+            await ListSvc.postListItemAttachment('Comentarios', closeCommentId, selectedCommentFile.name, selectedFileBuffer);
+          }
+        }
       }
       setSuccessMessage('Ticket cerrado correctamente.');
       dataLoaded.current = false;
@@ -1265,10 +1353,17 @@ const DetalleTicket: React.FC<IDetalleTicketProps> = ({ isOpen, onDismiss, ticke
                   onChange={e => setSelectedCommentFile(e.target.files?.[0] ?? null)}
                 />
                 <Stack horizontal verticalAlign="center" tokens={{ childrenGap: 8 }}>
+                  <PrimaryButton
+                    iconProps={{ iconName: 'Send' }}
+                    text="Publicar comentario"
+                    onClick={handlePublishComment}
+                    disabled={isSubmitting || (!comentario.trim() && !selectedCommentFile)}
+                  />
                   <DefaultButton
                     iconProps={{ iconName: 'Attach' }}
                     text="Cargar archivo"
                     onClick={() => commentFileRef.current?.click()}
+                    disabled={isSubmitting}
                   />
                   {selectedCommentFile && (
                     <span style={{ fontSize: 13 }}>
